@@ -1,0 +1,15 @@
+# Daily AI cache (regenerated automatically on the server)
+.daily_vibe_cache.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+
+# Streamlit secrets (handled via Streamlit Cloud secrets manager)
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
