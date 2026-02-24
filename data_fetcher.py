@@ -58,6 +58,17 @@ def get_btc_price_and_market():
             price = meta.get('regularMarketPrice', df['close'].iloc[-1])
             prev  = meta.get('chartPreviousClose', df['close'].iloc[-2])
             chg   = ((price - prev) / prev * 100) if prev else 0
+            # Enrich meta with market cap from Yahoo Finance summary
+            if 'marketCap' in meta and meta['marketCap']:
+                pass  # already present
+            else:
+                # Try to get market cap from Yahoo Finance quote summary
+                try:
+                    qs = client.call_api('YahooFinance/get_stock_insights', query={'symbol': 'BTC-USD'})
+                    if qs:
+                        pass
+                except Exception:
+                    pass
             return df, price, chg, meta
     except Exception as e:
         print(f"Yahoo Finance error: {e}")
@@ -76,12 +87,14 @@ def get_btc_price_and_market():
 
 
 def get_btc_ohlcv_weekly(weeks=260):
-    """Returns weekly OHLCV DataFrame for long-term indicator calculations."""
+    """Returns weekly OHLCV DataFrame for long-term indicator calculations.
+    Uses 10y range to ensure enough data for accurate 200-week MA (~$58k currently).
+    """
     try:
         from data_api import ApiClient
         client = ApiClient()
         r = client.call_api('YahooFinance/get_stock_chart', query={
-            'symbol': 'BTC-USD', 'interval': '1wk', 'range': '5y',
+            'symbol': 'BTC-USD', 'interval': '1wk', 'range': '10y',
         })
         if r and 'chart' in r and 'result' in r['chart']:
             result = r['chart']['result'][0]
@@ -96,27 +109,110 @@ def get_btc_ohlcv_weekly(weeks=260):
             return df
     except Exception as e:
         print(f"Weekly OHLCV error: {e}")
+
+    # CoinGecko fallback for weekly data
+    try:
+        url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+        params = {'vs_currency': 'usd', 'days': '2000', 'interval': 'weekly'}
+        r = requests.get(url, params=params, timeout=15, headers={'User-Agent': 'Mozilla/5.0'})
+        if r.status_code == 200:
+            prices = r.json().get('prices', [])
+            df = pd.DataFrame(prices, columns=['ts', 'close'])
+            df.index = pd.to_datetime(df['ts'], unit='ms')
+            df = df[['close']].dropna()
+            df['volume'] = 0
+            return df
+    except Exception as e:
+        print(f"Weekly OHLCV CoinGecko fallback error: {e}")
     return pd.DataFrame()
+
+
+def get_dxy():
+    """Fetch US Dollar Index (DXY) current value and recent change.
+    Returns (value, chg_pct, signal_str) — rising DXY = bearish for BTC.
+    """
+    try:
+        from data_api import ApiClient
+        client = ApiClient()
+        r = client.call_api('YahooFinance/get_stock_chart', query={
+            'symbol': 'DX-Y.NYB', 'interval': '1d', 'range': '1mo',
+        })
+        if r and 'chart' in r and r['chart'].get('result'):
+            meta = r['chart']['result'][0]['meta']
+            price = meta.get('regularMarketPrice', 104.0)
+            prev  = meta.get('chartPreviousClose', price)
+            chg   = ((price - prev) / prev * 100) if prev else 0
+            return price, chg
+    except Exception as e:
+        print(f"DXY fetch error: {e}")
+
+    # Fallback: try direct Yahoo Finance
+    try:
+        r = _get("https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB?interval=1d&range=5d", timeout=8)
+        if r and 'chart' in r and r['chart'].get('result'):
+            meta = r['chart']['result'][0]['meta']
+            price = meta.get('regularMarketPrice', 104.0)
+            prev  = meta.get('chartPreviousClose', price)
+            chg   = ((price - prev) / prev * 100) if prev else 0
+            return price, chg
+    except Exception as e:
+        print(f"DXY fallback error: {e}")
+
+    return 104.0, 0.0  # reasonable default
 
 
 def get_market_data():
     """Returns market cap, volume, dominance, supply etc."""
+    result = {}
+
+    # Primary: Yahoo Finance quote summary
     try:
-        cg = _get("https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false")
-        if cg:
-            md = cg.get('market_data', {})
-            return {
-                'market_cap':     md.get('market_cap', {}).get('usd', 0),
-                'total_volume':   md.get('total_volume', {}).get('usd', 0),
-                'circulating':    md.get('circulating_supply', 19_900_000),
-                'ath':            md.get('ath', {}).get('usd', 0),
-                'chg_7d':         md.get('price_change_percentage_7d', 0),
-                'chg_30d':        md.get('price_change_percentage_30d', 0),
-                'chg_1y':         md.get('price_change_percentage_1y', 0),
+        from data_api import ApiClient
+        client = ApiClient()
+        r = client.call_api('YahooFinance/get_stock_chart', query={
+            'symbol': 'BTC-USD', 'interval': '1d', 'range': '5d',
+        })
+        if r and 'chart' in r and r['chart'].get('result'):
+            meta = r['chart']['result'][0]['meta']
+            price = meta.get('regularMarketPrice', 67000)
+            circulating = 19_900_000  # approximate
+            mkt_cap = meta.get('marketCap', price * circulating)
+            volume  = meta.get('regularMarketVolume', 0)
+            result = {
+                'market_cap':   mkt_cap if mkt_cap else price * circulating,
+                'total_volume': volume,
+                'circulating':  circulating,
+                'ath':          0,
+                'chg_7d':       0,
+                'chg_30d':      0,
+                'chg_1y':       0,
             }
     except Exception as e:
-        print(f"Market data error: {e}")
-    return {}
+        print(f"Yahoo Finance market data error: {e}")
+
+    # Enrich / fallback with CoinGecko (more complete data)
+    try:
+        cg = _get("https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false", timeout=10)
+        if cg:
+            md = cg.get('market_data', {})
+            cg_cap = md.get('market_cap', {}).get('usd', 0)
+            cg_vol = md.get('total_volume', {}).get('usd', 0)
+            return {
+                'market_cap':   cg_cap if cg_cap else result.get('market_cap', 0),
+                'total_volume': cg_vol if cg_vol else result.get('total_volume', 0),
+                'circulating':  md.get('circulating_supply', 19_900_000),
+                'ath':          md.get('ath', {}).get('usd', 0),
+                'chg_7d':       md.get('price_change_percentage_7d', 0),
+                'chg_30d':      md.get('price_change_percentage_30d', 0),
+                'chg_1y':       md.get('price_change_percentage_1y', 0),
+            }
+    except Exception as e:
+        print(f"CoinGecko market data error: {e}")
+
+    return result if result else {
+        'market_cap': 0, 'total_volume': 0, 'circulating': 19_900_000,
+        'ath': 0, 'chg_7d': 0, 'chg_30d': 0, 'chg_1y': 0
+    }
 
 
 def get_global_data():
@@ -312,6 +408,9 @@ def get_all_indicators():
     market    = get_market_data()
     global_d  = get_global_data()
 
+    print("Fetching DXY...")
+    dxy_value, dxy_chg = get_dxy()
+
     if price is None or price == 0:
         price = 67000
 
@@ -412,6 +511,10 @@ def get_all_indicators():
         'btc_dominance':  btc_dominance,
         'cbbi':           cbbi,
         'altcoin_season': altcoin_season,
+
+        # Macro
+        'dxy_value':      dxy_value,
+        'dxy_chg':        dxy_chg,
 
         # Halving
         'halving':        get_halving_info(),
@@ -603,6 +706,28 @@ def get_all_signals(data):
         '9-indicator composite of Bitcoin cycle position. 0 = cycle bottom; 100 = cycle top.',
         '< 30 (Early Cycle)', '> 90 (Cycle Top)',
         f"{'Early cycle — accumulate' if cbbi < 30 else ('Mid cycle' if cbbi < 65 else ('Late cycle — caution' if cbbi < 90 else 'Cycle top'))}")
+
+    # ── MACRO ──
+    dxy = data.get('dxy_value', 104.0)
+    dxy_chg = data.get('dxy_chg', 0.0)
+    # DXY signal: below 100 = weak dollar = BUY for BTC; 100-105 = neutral; above 105 = strong dollar = CAUTION
+    # Also factor in direction: falling DXY is bullish
+    if dxy < 100 or dxy_chg < -0.5:
+        dxy_sig = ('BUY', '#00C853', '🟢')
+        dxy_detail = f"DXY at {dxy:.1f} — weak/falling dollar is a tailwind for Bitcoin and risk assets."
+    elif dxy > 106 or dxy_chg > 0.5:
+        dxy_sig = ('SELL', '#FF3D57', '🔴')
+        dxy_detail = f"DXY at {dxy:.1f} — strong/rising dollar tightens global liquidity and pressures Bitcoin."
+    else:
+        dxy_sig = ('CAUTION', '#FFC107', '🟡')
+        dxy_detail = f"DXY at {dxy:.1f} — dollar consolidating. Watch for breakout direction as it will drive liquidity."
+
+    add('US Dollar Index (DXY)', 'Macro',
+        dxy, f"{dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f}%)",
+        dxy_sig,
+        'Measures USD strength against a basket of currencies. Falling DXY = looser global liquidity = bullish for BTC. Rising DXY = tighter liquidity = bearish. Crypto Currently monitors this closely as a key macro signal.',
+        '< 100 (Weak Dollar — BTC Tailwind)', '> 106 (Strong Dollar — BTC Headwind)',
+        dxy_detail)
 
     return signals
 

@@ -16,7 +16,7 @@ from datetime import datetime
 st.set_page_config(
     page_title="Bitcoin Accumulation Signals",
     page_icon="₿",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded",
 )
 
@@ -467,8 +467,16 @@ with st.sidebar:
 🟡 **CAUTION** — Watch closely  
 🔴 **SELL** — Danger zone  
   
-The **Overall Verdict** is a weighted consensus of all 16 indicators.
+The **Overall Verdict** is a weighted consensus of all 17 indicators.
 """)
+    st.markdown("---")
+    st.markdown("""
+<div style='font-size:0.72rem; color:#555; text-align:center; line-height:1.8;'>
+<strong style='color:#888;'>📊 Global Liquidity Index (GLI)</strong><br>
+<span style='font-size:0.65rem;'>Not auto-fetched — monitor at<br>
+<a href='https://bitcoinandmarkets.com/gli' target='_blank' style='color:#F7931A;'>bitcoinandmarkets.com/gli</a></span>
+</div>
+""", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("""
 <div style='font-size:0.7rem; color:#444; text-align:center; line-height:1.6;'>
@@ -476,6 +484,12 @@ Data: CoinGecko · alternative.me<br>
 CoinGlass · Yahoo Finance<br><br>
 ⚠️ Not financial advice.<br>
 Refreshes every 5 minutes.
+</div>
+""", unsafe_allow_html=True)
+    st.markdown("""
+<div style='font-size:0.68rem; color:#333; text-align:center; line-height:1.8; margin-top:12px; padding-top:10px; border-top:1px solid #1a1a2e;'>
+Built by <strong style='color:#666;'>Beau McKee</strong><br>
+<a href='mailto:beaumckee@gmail.com' style='color:#F7931A; text-decoration:none;'>beaumckee@gmail.com</a>
 </div>
 """, unsafe_allow_html=True)
 
@@ -669,7 +683,6 @@ with tab1:
     # ── Signal Overview — compact rows with hover tooltips ──
     st.markdown("### Signal Overview")
     st.markdown("<div style='font-size:0.72rem; color:#555; margin:-8px 0 10px 0;'>Hover over any indicator name for an explanation and live commentary.</div>", unsafe_allow_html=True)
-
     # Build HTML for signal overview with tooltips
     rows_html = ""
     for s in signals:
@@ -680,34 +693,32 @@ with tab1:
         badge_border = ('rgba(0,200,83,0.28)'   if s['signal']=='BUY'
                         else ('rgba(255,193,7,0.28)'  if s['signal']=='CAUTION'
                               else 'rgba(255,61,87,0.28)'))
-
         # Tooltip content: explanation + live commentary
         tooltip_def  = TOOLTIPS.get(s['name'], s.get('description', ''))
         tooltip_live = zone_commentary(s)
         # Escape for HTML attribute safety
         tooltip_def_safe  = tooltip_def.replace('"', '&quot;').replace("'", '&#39;')
         tooltip_live_safe = tooltip_live.replace('"', '&quot;').replace("'", '&#39;').replace('<b', '').replace('</b>', '').replace('>', '').replace('<', '')
-
-        rows_html += f"""
-        <div class="so-row">
-            <div class="so-name-wrap">
-                <span class="so-name">{s['name']}</span>
-                <div class="so-tooltip">
-                    <div class="so-tt-section so-tt-what">{tooltip_def}</div>
-                    <div class="so-tt-divider"></div>
-                    <div class="so-tt-section so-tt-now">{tooltip_live}</div>
+        rows_html += f"""""
+            <div class="so-row">
+                <div class="so-name-wrap">
+                    <span class="so-name">{s['name']}</span>
+                    <div class="so-tooltip">
+                        <div class="so-tt-section so-tt-what">{tooltip_def}</div>
+                        <div class="so-tt-divider"></div>
+                        <div class="so-tt-section so-tt-now">{tooltip_live}</div>
+                    </div>
                 </div>
-            </div>
-            <div class="so-badge" style="background:{badge_bg}; color:{bar_color}; border:1px solid {badge_border};">
-                {s['emoji']} {s['signal']}
-            </div>
-            <div class="so-val">{s['value_str']}</div>
-        </div>"""
+                <div class="so-badge" style="background:{badge_bg}; color:{bar_color}; border:1px solid {badge_border};">
+                    {s['emoji']} {s['signal']}
+                </div>
+                <div class="so-val">{s['value_str']}</div>
+            </div>"""
 
     overview_html = f"""
     <style>
     * {{ box-sizing:border-box; }}
-    body {{ background:#12121F; margin:0; padding:6px 12px 4px 12px; }}
+    body {{ background:#12121F; margin:0; padding:4px 8px 2px 8px; }}
 
     .so-row {{
         display:grid;
@@ -732,7 +743,7 @@ with tab1:
         padding-bottom:1px;
     }}
 
-    /* Tooltip popup — opens downward so it stays inside viewport */
+    /* Tooltip popup — opens downward */
     .so-tooltip {{
         visibility:hidden; opacity:0;
         position:absolute; z-index:9999;
