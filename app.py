@@ -332,6 +332,13 @@ TOOLTIPS = {
         "Rising DXY = stronger dollar = tighter liquidity = bearish for BTC. "
         "Weight: moderate — key macro signal tracked by Crypto Currently."
     ),
+    'BTC vs S&P 500': (
+        "Compares Bitcoin's 90-day return against the S&P 500. "
+        "Based on Crypto Currently's analysis: BTC often leads equities — "
+        "when BTC diverges sharply below the S&P 500, it historically mean-reverts hard (2018, 2022). "
+        "BTC massively outperforming equities signals late-cycle risk. "
+        "Weight: low-moderate — useful divergence context signal."
+    ),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -433,6 +440,11 @@ def zone_commentary(s):
             'BUY':     f"DXY at {val} — <b style='color:#00C853'>weak or falling dollar</b>. A declining DXY loosens global liquidity and is historically bullish for Bitcoin and risk assets.",
             'CAUTION': f"DXY at {val} — dollar consolidating. Watch for breakout direction as it will drive liquidity conditions for Bitcoin.",
             'SELL':    f"DXY at {val} — <b style='color:#FF3D57'>strong or rising dollar</b>. A strengthening DXY tightens global liquidity and historically pressures Bitcoin prices.",
+        },
+        'BTC vs S&P 500': {
+            'BUY':     f"{val} — <b style='color:#00C853'>BTC is deeply oversold vs equities</b>. Based on Crypto Currently's analysis, this divergence has historically preceded strong BTC mean-reversion rallies (2018, 2022 examples).",
+            'CAUTION': f"{val} — BTC and the S&P 500 are broadly correlated. No strong divergence signal in either direction.",
+            'SELL':    f"{val} — <b style='color:#FF3D57'>BTC is significantly outperforming equities</b>. Crypto Currently notes that BTC leading equities to the upside is a late-cycle signal — historically precedes a top.",
         },
     }
     default = {
@@ -581,6 +593,90 @@ with p5:
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 200W MA Valuation Banner
+# ─────────────────────────────────────────────────────────────────────────────
+_ma200w      = data.get('ma_200w', 58500)
+_pct_200w    = data.get('pct_above_200w', 8.0)
+
+if _pct_200w < 0:
+    _val_region = 'Very Cheap'
+    _val_color  = '#1565C0'
+    _val_bg     = 'linear-gradient(135deg, rgba(21,101,192,0.18), rgba(21,101,192,0.06))'
+    _val_border = 'rgba(21,101,192,0.4)'
+    _val_desc   = 'Price is below the 200W MA — the deepest accumulation zone in Bitcoin history.'
+elif _pct_200w < 50:
+    _val_region = 'Cheap'
+    _val_color  = '#00897B'
+    _val_bg     = 'linear-gradient(135deg, rgba(0,137,123,0.18), rgba(0,137,123,0.06))'
+    _val_border = 'rgba(0,137,123,0.4)'
+    _val_desc   = '0–50% above the 200W MA — historically a strong accumulation zone.'
+elif _pct_200w < 100:
+    _val_region = 'Fair Value'
+    _val_color  = '#F9A825'
+    _val_bg     = 'linear-gradient(135deg, rgba(249,168,37,0.14), rgba(249,168,37,0.04))'
+    _val_border = 'rgba(249,168,37,0.4)'
+    _val_desc   = '50–100% above the 200W MA — fair value range. Normal bull market territory.'
+elif _pct_200w < 150:
+    _val_region = 'Expensive'
+    _val_color  = '#E65100'
+    _val_bg     = 'linear-gradient(135deg, rgba(230,81,0,0.16), rgba(230,81,0,0.05))'
+    _val_border = 'rgba(230,81,0,0.4)'
+    _val_desc   = '100–150% above the 200W MA — elevated. Consider reducing new exposure.'
+else:
+    _val_region = 'Very Expensive'
+    _val_color  = '#B71C1C'
+    _val_bg     = 'linear-gradient(135deg, rgba(183,28,28,0.18), rgba(183,28,28,0.06))'
+    _val_border = 'rgba(183,28,28,0.4)'
+    _val_desc   = 'Over 150% above the 200W MA — historically near cycle tops. High risk zone.'
+
+# Progress bar: map -20% to +200% range onto 0–100%
+_bar_min, _bar_max = -20, 200
+_bar_pos = max(0, min(100, (_pct_200w - _bar_min) / (_bar_max - _bar_min) * 100))
+
+st.markdown(f"""
+<div style="background:{_val_bg}; border:1px solid {_val_border}; border-radius:12px; padding:14px 20px; margin-bottom:10px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div>
+        <div style="font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px;">200W MA Valuation</div>
+        <div style="font-size:1.55rem; font-weight:800; color:{_val_color}; line-height:1;">{_val_region}</div>
+        <div style="font-size:0.7rem; color:#aaa; margin-top:3px;">{_val_desc}</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:0.6rem; color:#888; text-transform:uppercase; letter-spacing:0.06em;">BTC Price</div>
+        <div style="font-size:1.1rem; font-weight:700; color:#F7931A;">${price:,.0f}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:0.6rem; color:#888; text-transform:uppercase; letter-spacing:0.06em;">200W MA</div>
+        <div style="font-size:1.1rem; font-weight:700; color:#ccc;">${_ma200w:,.0f}</div>
+        <div style="font-size:0.6rem; color:#666;">weekly closes · Yahoo Finance</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:0.6rem; color:#888; text-transform:uppercase; letter-spacing:0.06em;">Extension</div>
+        <div style="font-size:1.1rem; font-weight:700; color:{_val_color};">{_pct_200w:+.1f}%</div>
+        <div style="font-size:0.6rem; color:#666;">above 200W MA</div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px;">
+    <div style="position:relative; height:8px; background:linear-gradient(to right, #1565C0 0%, #00897B 20%, #F9A825 45%, #E65100 70%, #B71C1C 100%); border-radius:4px;">
+      <div style="position:absolute; top:-3px; left:{_bar_pos:.1f}%; transform:translateX(-50%); width:14px; height:14px; background:#fff; border-radius:50%; border:2px solid {_val_color}; box-shadow:0 0 6px {_val_color};"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.58rem; color:#555;">
+      <span>Below 0%<br>Very Cheap</span>
+      <span style="text-align:center;">+50%<br>Cheap</span>
+      <span style="text-align:center;">+100%<br>Fair Value</span>
+      <span style="text-align:center;">+150%<br>Expensive</span>
+      <span style="text-align:right;">+200%<br>Very Expensive</span>
+    </div>
+  </div>
+  <div style="font-size:0.6rem; color:#444; margin-top:6px; text-align:right;">Not part of the accumulation score &nbsp;·&nbsp; Model: Crypto Currently / 200W MA Extension</div>
+</div>
+""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Market Vibe

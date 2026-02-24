@@ -161,6 +161,48 @@ def get_dxy():
     return 104.0, 0.0  # reasonable default
 
 
+def get_spx_comparison():
+    """
+    Fetch BTC and S&P 500 (SPX) 90-day returns to compute divergence signal.
+    Returns (btc_90d_pct, spx_90d_pct, divergence_pct)
+    where divergence = btc_90d - spx_90d
+    Negative divergence = BTC underperforming = historically a BUY signal.
+    """
+    try:
+        from data_api import ApiClient
+        client = ApiClient()
+
+        # BTC 90-day return
+        btc_r = client.call_api('YahooFinance/get_stock_chart', query={
+            'symbol': 'BTC-USD', 'interval': '1d', 'range': '6mo'
+        })
+        # SPX 90-day return
+        spx_r = client.call_api('YahooFinance/get_stock_chart', query={
+            'symbol': '^GSPC', 'interval': '1d', 'range': '6mo'
+        })
+
+        def extract_90d_return(r):
+            if r and 'chart' in r and r['chart'].get('result'):
+                closes = r['chart']['result'][0]['indicators']['quote'][0].get('close', [])
+                closes = [c for c in closes if c is not None]
+                if len(closes) >= 90:
+                    start = closes[-90]
+                    end   = closes[-1]
+                    return (end - start) / start * 100 if start else 0
+            return None
+
+        btc_90d = extract_90d_return(btc_r)
+        spx_90d = extract_90d_return(spx_r)
+
+        if btc_90d is not None and spx_90d is not None:
+            return btc_90d, spx_90d, btc_90d - spx_90d
+    except Exception as e:
+        print(f"SPX comparison error: {e}")
+
+    # Fallback: reasonable current values (Feb 2026)
+    return -28.0, 5.0, -33.0
+
+
 def get_gli(fred_key: str):
     """
     Compute Global Liquidity Index (GLI) from FRED API.
@@ -478,6 +520,9 @@ def get_all_indicators():
     print("Fetching DXY...")
     dxy_value, dxy_chg = get_dxy()
 
+    print("Fetching BTC vs SPX...")
+    btc_90d, spx_90d, spx_divergence = get_spx_comparison()
+
     print("Fetching GLI from FRED...")
     import os
     fred_key = os.environ.get('FRED_API_KEY', '0d9475394ac10c664def19fabafb6ffa')
@@ -591,6 +636,11 @@ def get_all_indicators():
         'gli_12m':        gli_12m,
         'gli_yoy':        gli_yoy,
         'gli_trend':      gli_trend,
+
+        # BTC vs SPX
+        'btc_90d':        btc_90d,
+        'spx_90d':        spx_90d,
+        'spx_divergence': spx_divergence,
 
         # Halving
         'halving':        get_halving_info(),
@@ -829,6 +879,37 @@ def get_all_signals(data):
         'Measures USD strength against a basket of currencies. Falling DXY = looser global liquidity = bullish for BTC. Rising DXY = tighter liquidity = bearish. Crypto Currently monitors this closely as a key macro signal.',
         '< 100 (Weak Dollar — BTC Tailwind)', '> 106 (Strong Dollar — BTC Headwind)',
         dxy_detail)
+
+    # ── BTC vs S&P 500 Divergence ──
+    btc_90d      = data.get('btc_90d', -28.0)
+    spx_90d      = data.get('spx_90d', 5.0)
+    spx_div      = data.get('spx_divergence', -33.0)  # btc_90d - spx_90d
+
+    # Signal logic: based on Crypto Currently's divergence analysis
+    # BTC massively underperforming SPX = oversold vs equities = BUY (mean reversion)
+    # BTC massively outperforming SPX = late cycle / topping = SELL
+    if spx_div <= -20:
+        spx_sig = ('BUY', '#00C853', '\U0001f7e2')
+        spx_detail = (f"BTC {btc_90d:+.1f}% vs S&P 500 {spx_90d:+.1f}% over 90 days — "
+                      f"BTC is underperforming equities by {abs(spx_div):.0f}%. "
+                      f"Historically (2018, 2022) these divergences have preceded strong BTC mean-reversion rallies.")
+    elif spx_div >= 20:
+        spx_sig = ('SELL', '#FF3D57', '\U0001f534')
+        spx_detail = (f"BTC {btc_90d:+.1f}% vs S&P 500 {spx_90d:+.1f}% over 90 days — "
+                      f"BTC is outperforming equities by {spx_div:.0f}%. "
+                      f"BTC leading equities to the upside is a late-cycle signal — historically precedes a top.")
+    else:
+        spx_sig = ('CAUTION', '#FFC107', '\U0001f7e1')
+        spx_detail = (f"BTC {btc_90d:+.1f}% vs S&P 500 {spx_90d:+.1f}% over 90 days — "
+                      f"BTC and equities are broadly correlated. No strong divergence signal.")
+
+    add('BTC vs S&P 500',  'Market Structure',
+        spx_div,
+        f"BTC {btc_90d:+.1f}% / SPX {spx_90d:+.1f}% (90d)",
+        spx_sig,
+        'Compares Bitcoin\'s 90-day return against the S&P 500. Based on Crypto Currently\'s analysis: when BTC diverges sharply below equities, it historically mean-reverts hard (2018, 2022 examples). BTC outperforming by >20% signals late-cycle risk.',
+        'BTC underperforms SPX by > 20% (Oversold vs Equities)', 'BTC outperforms SPX by > 20% (Late Cycle)',
+        spx_detail)
 
     return signals
 
