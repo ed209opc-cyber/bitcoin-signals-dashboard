@@ -93,7 +93,7 @@ section[data-testid="stSidebar"] * { color: #C8C8D8 !important; }
 /* ── Indicator Cards ── */
 .indicator-card {
     background: #12121F; border: 1px solid #1E1E2E; border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 10px;
+    padding: 10px 12px; margin-bottom: 8px;
     transition: border-color 0.2s, box-shadow 0.2s; cursor: default;
     position: relative; overflow: hidden;
 }
@@ -114,17 +114,17 @@ section[data-testid="stSidebar"] * { color: #C8C8D8 !important; }
 .badge-caution { background: rgba(255,193,7,0.12); color: #FFC107; border: 1px solid rgba(255,193,7,0.25); }
 .badge-sell   { background: rgba(255,61,87,0.12);  color: #FF3D57; border: 1px solid rgba(255,61,87,0.25); }
 
-.card-value { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; margin: 3px 0 1px 0; }
-.card-detail { font-size: 0.72rem; color: #888; margin-top: 1px; }
+.card-value { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; margin: 2px 0 1px 0; }
+.card-detail { font-size: 0.70rem; color: #888; margin-top: 1px; }
 
 /* ── Zone Commentary ── */
 .zone-commentary {
-    margin-top: 7px; padding: 7px 10px;
+    margin-top: 5px; padding: 6px 9px;
     background: rgba(255,255,255,0.03); border-radius: 6px;
-    font-size: 0.74rem; color: #999; line-height: 1.5;
+    font-size: 0.72rem; color: #999; line-height: 1.45;
     border-left: 2px solid #2A2A3E;
 }
-.zone-thresholds { display: flex; gap: 10px; margin-top: 5px; font-size: 0.67rem; flex-wrap: wrap; }
+.zone-thresholds { display: flex; gap: 8px; margin-top: 4px; font-size: 0.65rem; flex-wrap: wrap; }
 .zone-buy  { color: #00C853; }
 .zone-sell { color: #FF3D57; }
 
@@ -141,6 +141,30 @@ section[data-testid="stSidebar"] * { color: #C8C8D8 !important; }
 }
 .tooltip-wrap:hover .tooltip-text { visibility: visible; opacity: 1; }
 
+/* ── Card Tooltip (hover on card name in All Indicators section) ── */
+.card-tooltip-wrap { position: relative; cursor: default; }
+.card-tooltip-popup {
+    visibility: hidden; opacity: 0;
+    position: absolute; z-index: 9999;
+    left: 0; top: calc(100% + 6px);
+    width: 280px;
+    background: #1A1A2E; border: 1px solid #2A2A4E;
+    border-radius: 10px; padding: 0;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.75);
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+}
+.card-tooltip-wrap:hover .card-tooltip-popup { visibility: visible; opacity: 1; }
+.ct-what {
+    font-family: 'Inter', sans-serif; font-size: 0.73rem;
+    color: #9090A8; line-height: 1.55; padding: 9px 12px;
+}
+.ct-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 0 12px; }
+.ct-now {
+    font-family: 'Inter', sans-serif; font-size: 0.73rem;
+    color: #C8C8D8; line-height: 1.55; padding: 9px 12px;
+}
+
 /* ── Metric Cards ── */
 .metric-card { background: #12121F; border: 1px solid #1E1E2E; border-radius: 10px; padding: 13px 14px; text-align: center; }
 .metric-label { font-size: 0.63rem; color: #555; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
@@ -148,7 +172,7 @@ section[data-testid="stSidebar"] * { color: #C8C8D8 !important; }
 .metric-sub { font-size: 0.67rem; color: #555; margin-top: 2px; }
 
 /* ── Category Headers ── */
-.category-header { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #F7931A; margin: 18px 0 8px 0; padding-bottom: 5px; border-bottom: 1px solid #1E1E2E; }
+.category-header { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #F7931A; margin: 12px 0 6px 0; padding-bottom: 4px; border-bottom: 1px solid #1E1E2E; }
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] { background: #0F0F1A; border-radius: 10px; padding: 3px; border: 1px solid #1E1E2E; gap: 3px; }
@@ -286,6 +310,18 @@ TOOLTIPS = {
         "< 30 = early cycle (accumulate). > 90 = cycle top (sell). "
         "Weight: high — aggregates multiple signals into one clean score."
     ),
+    'Global Liquidity Index (GLI)': (
+        "Composite of major central bank balance sheets (Fed + ECB + BoJ). "
+        "Expanding GLI = more money printing = bullish for Bitcoin. "
+        "Contracting GLI = quantitative tightening = macro headwind. "
+        "Weight: high — Crypto Currently's #1 macro signal for cycle timing."
+    ),
+    'US Dollar Index (DXY)': (
+        "Measures USD strength against a basket of 6 major currencies. "
+        "Falling DXY = weaker dollar = looser global liquidity = bullish for BTC. "
+        "Rising DXY = stronger dollar = tighter liquidity = bearish for BTC. "
+        "Weight: moderate — key macro signal tracked by Crypto Currently."
+    ),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -377,6 +413,16 @@ def zone_commentary(s):
             'BUY':     f"CBBI at {val} — <b style='color:#00C853'>early cycle</b>. The composite of 9 on-chain indicators suggests we are far from a cycle top. Historically an excellent accumulation window.",
             'CAUTION': f"CBBI at {val} — mid cycle. Meaningful upside may remain but indicators are no longer at extreme lows.",
             'SELL':    f"CBBI at {val} — late cycle or cycle top territory. Multiple on-chain indicators flashing warning signals simultaneously.",
+        },
+        'Global Liquidity Index (GLI)': {
+            'BUY':     f"GLI at {val} — <b style='color:#00C853'>global liquidity is expanding</b>. Central banks are injecting money into the system. Historically, Bitcoin rallies strongly when GLI is growing.",
+            'CAUTION': f"GLI at {val} — liquidity is flat or slightly contracting. Bitcoin may face headwinds until central banks pivot to expansion.",
+            'SELL':    f"GLI at {val} — <b style='color:#FF3D57'>significant liquidity contraction</b>. This is the macro headwind Crypto Currently has been warning about. Tightening conditions are a major risk for Bitcoin.",
+        },
+        'US Dollar Index (DXY)': {
+            'BUY':     f"DXY at {val} — <b style='color:#00C853'>weak or falling dollar</b>. A declining DXY loosens global liquidity and is historically bullish for Bitcoin and risk assets.",
+            'CAUTION': f"DXY at {val} — dollar consolidating. Watch for breakout direction as it will drive liquidity conditions for Bitcoin.",
+            'SELL':    f"DXY at {val} — <b style='color:#FF3D57'>strong or rising dollar</b>. A strengthening DXY tightens global liquidity and historically pressures Bitcoin prices.",
         },
     }
     default = {
@@ -673,8 +719,8 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
 
     # ── Signal Overview — compact rows with hover tooltips ──
-    st.markdown("### Signal Overview")
-    st.markdown("<div style='font-size:0.72rem; color:#555; margin:-8px 0 10px 0;'>Hover over any indicator name for an explanation and live commentary.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:1.1rem; font-weight:700; color:#E8E8F0; margin:4px 0 2px 0;'>Signal Overview</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.70rem; color:#555; margin:0 0 8px 0;'>Hover over any indicator name for an explanation and live commentary.</div>", unsafe_allow_html=True)
     # Build HTML for signal overview with tooltips
     rows_html = ""
     for s in signals:
@@ -685,13 +731,16 @@ with tab1:
         badge_border = ('rgba(0,200,83,0.28)'   if s['signal']=='BUY'
                         else ('rgba(255,193,7,0.28)'  if s['signal']=='CAUTION'
                               else 'rgba(255,61,87,0.28)'))
+        badge_dot    = ('#00C853' if s['signal']=='BUY'
+                        else ('#FFC107' if s['signal']=='CAUTION'
+                              else '#FF3D57'))
         # Tooltip content: explanation + live commentary
         tooltip_def  = TOOLTIPS.get(s['name'], s.get('description', ''))
         tooltip_live = zone_commentary(s)
         # Escape for HTML attribute safety
         tooltip_def_safe  = tooltip_def.replace('"', '&quot;').replace("'", '&#39;')
         tooltip_live_safe = tooltip_live.replace('"', '&quot;').replace("'", '&#39;').replace('<b', '').replace('</b>', '').replace('>', '').replace('<', '')
-        rows_html += f"""""
+        rows_html += f"""
             <div class="so-row">
                 <div class="so-name-wrap">
                     <span class="so-name">{s['name']}</span>
@@ -702,7 +751,7 @@ with tab1:
                     </div>
                 </div>
                 <div class="so-badge" style="background:{badge_bg}; color:{bar_color}; border:1px solid {badge_border};">
-                    {s['emoji']} {s['signal']}
+                    <span class="so-dot" style="background:{badge_dot};"></span>{s['signal']}
                 </div>
                 <div class="so-val">{s['value_str']}</div>
             </div>"""
@@ -710,28 +759,28 @@ with tab1:
     overview_html = f"""
     <style>
     * {{ box-sizing:border-box; }}
-    body {{ background:#12121F; margin:0; padding:4px 8px 2px 8px; }}
+    body {{ background:#12121F; margin:0; padding:3px 6px 2px 6px; }}
 
     .so-row {{
         display:grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: 1fr 90px 80px;
         align-items:center;
-        gap:10px;
-        padding:5px 8px;
+        gap:8px;
+        padding:4px 6px;
         border-bottom:1px solid rgba(255,255,255,0.04);
         position:relative;
     }}
     .so-row:last-child {{ border-bottom:none; }}
-    .so-row:hover {{ background:rgba(255,255,255,0.02); border-radius:6px; }}
+    .so-row:hover {{ background:rgba(255,255,255,0.025); border-radius:5px; }}
 
     .so-name-wrap {{
         position:relative; min-width:0; cursor:default;
     }}
     .so-name {{
-        font-family:'Inter',sans-serif; font-size:0.8rem; color:#C8C8D8;
+        font-family:'Inter',sans-serif; font-size:0.78rem; color:#C8C8D8;
         font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
         display:block;
-        border-bottom:1px dashed rgba(255,255,255,0.12);
+        border-bottom:1px dashed rgba(255,255,255,0.10);
         padding-bottom:1px;
     }}
 
@@ -753,34 +802,41 @@ with tab1:
         visibility:visible; opacity:1;
     }}
     .so-tt-section {{
-        font-family:'Inter',sans-serif; font-size:0.74rem;
-        color:#B8B8CC; line-height:1.55; padding:10px 13px;
+        font-family:'Inter',sans-serif; font-size:0.73rem;
+        color:#B8B8CC; line-height:1.55; padding:9px 12px;
     }}
     .so-tt-what {{ color:#9090A8; }}
     .so-tt-now  {{ color:#C8C8D8; }}
-    .so-tt-divider {{ height:1px; background:rgba(255,255,255,0.07); margin:0 13px; }}
+    .so-tt-divider {{ height:1px; background:rgba(255,255,255,0.07); margin:0 12px; }}
 
+    /* Fixed-width badge column — all badges same width so value column aligns */
     .so-badge {{
-        font-family:'Inter',sans-serif; font-size:0.63rem; font-weight:800;
-        letter-spacing:0.9px; padding:3px 10px; border-radius:10px; white-space:nowrap;
-        flex-shrink:0;
+        font-family:'Inter',sans-serif; font-size:0.62rem; font-weight:800;
+        letter-spacing:0.8px; padding:2px 8px; border-radius:8px;
+        white-space:nowrap; width:90px;
+        display:flex; align-items:center; gap:5px;
+        justify-content:center;
+    }}
+    .so-dot {{
+        width:5px; height:5px; border-radius:50%; flex-shrink:0;
+        display:inline-block;
     }}
     .so-val {{
-        font-family:'JetBrains Mono',monospace; font-size:0.71rem;
-        color:#666; text-align:right; white-space:nowrap; flex-shrink:0;
-        min-width:55px;
+        font-family:'JetBrains Mono',monospace; font-size:0.70rem;
+        color:#666; text-align:right; white-space:nowrap;
+        width:80px; overflow:hidden; text-overflow:ellipsis;
     }}
     </style>
     <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:10px; padding:2px 4px;">
     {rows_html}
     </div>
     """
-    components.html(overview_html, height=len(signals) * 34 + 24, scrolling=False)
+    components.html(overview_html, height=len(signals) * 30 + 20, scrolling=False)
 
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
     # ── Indicator Cards ──
-    st.markdown("### All Indicators at a Glance")
+    st.markdown("<div style='font-size:1.1rem; font-weight:700; color:#E8E8F0; margin:4px 0 2px 0;'>All Indicators at a Glance</div>", unsafe_allow_html=True)
 
     categories = {}
     for s in signals:
@@ -795,6 +851,7 @@ with tab1:
         'Price Model':      '📐',
         'Technical':        '📊',
         'Market Structure': '🏗️',
+        'Macro':            '🌎',
     }
 
     for cat, items in categories.items():
@@ -816,12 +873,16 @@ with tab1:
 
             with cols[i % 3]:
                 st.markdown(f"""
-                <div class="indicator-card {card_class}">
+                <div class="indicator-card {card_class}" style="position:relative; overflow:visible;">
                     <div class="card-header">
-                        <div>
-                            <div class="tooltip-wrap">
-                                <span class="card-name">{s['name']} ℹ</span>
-                                <div class="tooltip-text">{tooltip_txt}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div class="card-tooltip-wrap">
+                                <div class="card-name">{s['name']} <span style="font-size:0.6rem; color:#444; font-weight:400;">ℹ</span></div>
+                                <div class="card-tooltip-popup">
+                                    <div class="ct-what">{tooltip_txt}</div>
+                                    <div class="ct-divider"></div>
+                                    <div class="ct-now">{commentary}</div>
+                                </div>
                             </div>
                             <div class="card-category">{s['category']}</div>
                         </div>
