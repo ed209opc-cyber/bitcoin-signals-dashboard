@@ -1,5 +1,5 @@
 """
-₿ Bitcoin Accumulation Signal Dashboard — v3
+₿ Bitcoin Accumulation Index — v3
 Dark mode · Live signals · Market vibe · AUD pricing · Hover tooltips
 """
 
@@ -14,7 +14,7 @@ from datetime import datetime
 # Page Config
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Bitcoin Accumulation Signals",
+    page_title="Bitcoin Accumulation Index",
     page_icon="₿",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -532,7 +532,7 @@ st.markdown(f"""
 <div class="dash-header">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
-            <div class="dash-title">₿ Bitcoin Accumulation Signals</div>
+            <div class="dash-title">₿ Bitcoin Accumulation Index</div>
             <div class="dash-subtitle">Is now a good time to buy Bitcoin? &nbsp;·&nbsp; {datetime.utcnow().strftime('%B %d, %Y %H:%M UTC')}</div>
         </div>
         <div class="live-badge"><div class="live-dot"></div>LIVE</div>
