@@ -526,6 +526,114 @@ chg_7d    = data.get('chg_7d', 0)
 aud_rate  = data.get('aud_rate', 1.58)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Signal Change Detection + Anomaly Detection (cached daily)
+# ─────────────────────────────────────────────────────────────────────────────
+import os as _os_ac, json as _json_ac
+from datetime import datetime as _dt_ac, timezone as _tz_ac
+
+_ALERT_CACHE = _os_ac.path.join(_os_ac.path.dirname(__file__), '.alert_cache.json')
+_today_str   = _dt_ac.now(_tz_ac.utc).strftime('%Y-%m-%d')
+
+def _load_alert_cache():
+    if _os_ac.path.exists(_ALERT_CACHE):
+        try:
+            with open(_ALERT_CACHE) as _f:
+                return _json_ac.load(_f)
+        except Exception:
+            pass
+    return {}
+
+def _save_alert_cache(cache):
+    try:
+        with open(_ALERT_CACHE, 'w') as _f:
+            _json_ac.dump(cache, _f, indent=2)
+    except Exception:
+        pass
+
+_alert_cache = _load_alert_cache()
+
+# ── Signal Change Alert ──
+_prev_verdict   = _alert_cache.get('prev_verdict', verdict)
+_signal_changed = (_prev_verdict != verdict) and (_alert_cache.get('prev_verdict') is not None)
+_signal_change_text = None
+
+if _signal_changed:
+    # Generate AI explanation of the change
+    _cached_change = _alert_cache.get('signal_change_text') if _alert_cache.get('change_date') == _today_str else None
+    if not _cached_change:
+        try:
+            from openai import OpenAI as _OAI
+            _oai = _OAI()
+            _chg_prompt = (
+                f"The Bitcoin Accumulation Index overall signal just changed from '{_prev_verdict}' to '{verdict}'. "
+                f"Current score: {score:.0f}/100. Signal distribution: {buy_n} BUY, {caution_n} CAUTION, {sell_n} SELL out of {len(signals)} indicators. "
+                f"BTC price: ${price:,.0f}. "
+                f"Write 2 concise sentences explaining what drove this change and what it means for DCA strategy. "
+                f"Be specific and analytical. No hype."
+            )
+            _chg_resp = _oai.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": _chg_prompt}],
+                max_tokens=120, temperature=0.6
+            )
+            _signal_change_text = _chg_resp.choices[0].message.content.strip()
+            _alert_cache['signal_change_text'] = _signal_change_text
+            _alert_cache['change_date'] = _today_str
+        except Exception:
+            _signal_change_text = f"The overall signal has shifted from {_prev_verdict} to {verdict}, reflecting a change in the balance of indicators."
+    else:
+        _signal_change_text = _cached_change
+
+# ── Indicator Anomaly Detection ──
+_anomaly_text = None
+_ANOMALY_THRESHOLDS = {
+    'fear_greed':   {'key': 'fear_greed',   'label': 'Fear & Greed Index', 'prev_key': 'prev_fg',   'threshold': 15},
+    'chg_24h':      {'key': 'chg_24h',      'label': 'BTC 24h price',      'prev_key': 'prev_chg',  'threshold': 8},
+    'mvrv':         {'key': 'mvrv',         'label': 'MVRV Z-Score',       'prev_key': 'prev_mvrv', 'threshold': 0.3},
+}
+_anomalies = []
+for _ind_key, _ind_cfg in _ANOMALY_THRESHOLDS.items():
+    _cur_val  = data.get(_ind_cfg['key'])
+    _prev_val = _alert_cache.get(_ind_cfg['prev_key'])
+    if _cur_val is not None and _prev_val is not None:
+        _delta = abs(float(_cur_val) - float(_prev_val))
+        if _delta >= _ind_cfg['threshold']:
+            _dir = "jumped" if float(_cur_val) > float(_prev_val) else "dropped"
+            _anomalies.append(f"{_ind_cfg['label']} {_dir} from {_prev_val:.1f} to {_cur_val:.1f}")
+
+if _anomalies:
+    _cached_anomaly = _alert_cache.get('anomaly_text') if _alert_cache.get('anomaly_date') == _today_str else None
+    if not _cached_anomaly:
+        try:
+            from openai import OpenAI as _OAI2
+            _oai2 = _OAI2()
+            _anom_prompt = (
+                f"Notable Bitcoin indicator moves detected: {'; '.join(_anomalies)}. "
+                f"Current BTC price: ${price:,.0f}. Overall signal: {verdict}. "
+                f"Write 1-2 sentences of plain-English context explaining what this move means. "
+                f"Be specific. No hype. No prediction."
+            )
+            _anom_resp = _oai2.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": _anom_prompt}],
+                max_tokens=100, temperature=0.6
+            )
+            _anomaly_text = _anom_resp.choices[0].message.content.strip()
+            _alert_cache['anomaly_text'] = _anomaly_text
+            _alert_cache['anomaly_date'] = _today_str
+        except Exception:
+            _anomaly_text = "Notable indicator movement detected: " + "; ".join(_anomalies) + "."
+    else:
+        _anomaly_text = _cached_anomaly
+
+# ── Update cache with current values ──
+_alert_cache['prev_verdict'] = verdict
+_alert_cache['prev_fg']      = data.get('fear_greed')
+_alert_cache['prev_chg']     = data.get('chg_24h')
+_alert_cache['prev_mvrv']    = data.get('mvrv')
+_save_alert_cache(_alert_cache)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Header
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -759,6 +867,47 @@ st.markdown(f"""
     </div>
   </div>
   <div style="font-size:0.6rem; color:#444; margin-top:6px; text-align:right;">Not part of the accumulation score &nbsp;·&nbsp; 200W MA Extension Model</div>
+</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Signal Change Alert Banner
+# ─────────────────────────────────────────────────────────────────────────────
+if _signal_changed and _signal_change_text:
+    _prev_color = {'STRONG BUY': '#00C853', 'ACCUMULATE': '#69F0AE', 'NEUTRAL — WATCH': '#FFC107',
+                   'CAUTION — HOLD': '#FF9800', 'SELL / REDUCE': '#FF3D57'}.get(_prev_verdict, '#888')
+    _new_color  = {'STRONG BUY': '#00C853', 'ACCUMULATE': '#69F0AE', 'NEUTRAL — WATCH': '#FFC107',
+                   'CAUTION — HOLD': '#FF9800', 'SELL / REDUCE': '#FF3D57'}.get(verdict, '#888')
+    st.markdown(f"""
+<div style="background:rgba(247,147,26,0.07); border:1px solid rgba(247,147,26,0.25); border-radius:12px;
+            padding:14px 20px; margin-bottom:12px; display:flex; align-items:flex-start; gap:14px;">
+    <div style="font-size:1.4rem; line-height:1; margin-top:2px;">🔔</div>
+    <div>
+        <div style="font-size:0.65rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+                    color:#F7931A; margin-bottom:5px;">Signal Changed</div>
+        <div style="font-size:0.82rem; color:#ccc; margin-bottom:6px;">
+            <span style="color:{_prev_color}; font-weight:700;">{_prev_verdict}</span>
+            <span style="color:#555; margin:0 8px;">→</span>
+            <span style="color:{_new_color}; font-weight:700;">{verdict}</span>
+        </div>
+        <div style="font-size:0.80rem; color:#aaa; line-height:1.5;">{_signal_change_text}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Indicator Anomaly Callout
+# ─────────────────────────────────────────────────────────────────────────────
+if _anomaly_text:
+    st.markdown(f"""
+<div style="background:rgba(255,193,7,0.05); border:1px solid rgba(255,193,7,0.2); border-radius:12px;
+            padding:14px 20px; margin-bottom:12px; display:flex; align-items:flex-start; gap:14px;">
+    <div style="font-size:1.4rem; line-height:1; margin-top:2px;">📊</div>
+    <div>
+        <div style="font-size:0.65rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+                    color:#FFC107; margin-bottom:5px;">Notable Indicator Movement</div>
+        <div style="font-size:0.80rem; color:#aaa; line-height:1.5;">{_anomaly_text}</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
