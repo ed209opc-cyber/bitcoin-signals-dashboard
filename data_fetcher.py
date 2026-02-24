@@ -161,6 +161,73 @@ def get_dxy():
     return 104.0, 0.0  # reasonable default
 
 
+def get_gli(fred_key: str):
+    """
+    Compute Global Liquidity Index (GLI) from FRED API.
+    Uses Fed (WALCL), ECB (ECBASSETSW), and BoJ (JPNASSETS) balance sheets,
+    converted to USD trillions using live FX rates from FRED.
+    Returns (gli_now_trillions, gli_12m_ago_trillions, yoy_pct_change, trend_label)
+    """
+    try:
+        base = 'https://api.stlouisfed.org/fred/series/observations'
+
+        def fred_get(series_id, limit=5, start=None):
+            params = {
+                'series_id': series_id,
+                'api_key': fred_key,
+                'file_type': 'json',
+                'sort_order': 'desc',
+                'limit': limit,
+            }
+            if start:
+                params['observation_start'] = start
+                params['sort_order'] = 'asc'
+                del params['limit']
+            r = requests.get(base, params=params, timeout=12)
+            obs = [o for o in r.json().get('observations', []) if o['value'] != '.']
+            return obs
+
+        # Latest FX rates
+        jpy_usd = float(fred_get('DEXJPUS')[0]['value'])   # JPY per 1 USD
+        eur_usd = float(fred_get('DEXUSEU')[0]['value'])   # USD per 1 EUR
+
+        # Latest CB balance sheets
+        fed_m  = float(fred_get('WALCL')[0]['value'])        # USD millions
+        ecb_m  = float(fred_get('ECBASSETSW')[0]['value'])   # EUR millions
+        boj_b  = float(fred_get('JPNASSETS')[0]['value'])    # JPY billions
+
+        fed_t = fed_m / 1_000_000
+        ecb_t = (ecb_m * eur_usd) / 1_000_000
+        boj_t = (boj_b * 1000 / jpy_usd) / 1_000_000
+        gli_now = fed_t + ecb_t + boj_t
+
+        # 12 months ago
+        start_12m = (datetime.now() - timedelta(days=400)).strftime('%Y-%m-%d')
+        fed_h  = fred_get('WALCL',     start=start_12m)
+        ecb_h  = fred_get('ECBASSETSW', start=start_12m)
+        boj_h  = fred_get('JPNASSETS', start=start_12m)
+
+        fed_t0 = float(fed_h[0]['value']) / 1_000_000 if fed_h else fed_t
+        ecb_t0 = (float(ecb_h[0]['value']) * eur_usd) / 1_000_000 if ecb_h else ecb_t
+        boj_t0 = (float(boj_h[0]['value']) * 1000 / jpy_usd) / 1_000_000 if boj_h else boj_t
+        gli_12m = fed_t0 + ecb_t0 + boj_t0
+
+        yoy = ((gli_now - gli_12m) / gli_12m * 100) if gli_12m > 0 else 0
+
+        if yoy > 3:
+            trend = 'Expanding'
+        elif yoy < -3:
+            trend = 'Contracting'
+        else:
+            trend = 'Flat'
+
+        return gli_now, gli_12m, yoy, trend
+
+    except Exception as e:
+        print(f"GLI fetch error: {e}")
+        return 19.0, 21.0, -10.0, 'Contracting'  # fallback based on recent data
+
+
 def get_market_data():
     """Returns market cap, volume, dominance, supply etc."""
     result = {}
@@ -411,6 +478,11 @@ def get_all_indicators():
     print("Fetching DXY...")
     dxy_value, dxy_chg = get_dxy()
 
+    print("Fetching GLI from FRED...")
+    import os
+    fred_key = os.environ.get('FRED_API_KEY', '0d9475394ac10c664def19fabafb6ffa')
+    gli_now, gli_12m, gli_yoy, gli_trend = get_gli(fred_key)
+
     if price is None or price == 0:
         price = 67000
 
@@ -515,6 +587,10 @@ def get_all_indicators():
         # Macro
         'dxy_value':      dxy_value,
         'dxy_chg':        dxy_chg,
+        'gli_now':        gli_now,
+        'gli_12m':        gli_12m,
+        'gli_yoy':        gli_yoy,
+        'gli_trend':      gli_trend,
 
         # Halving
         'halving':        get_halving_info(),
@@ -708,6 +784,31 @@ def get_all_signals(data):
         f"{'Early cycle — accumulate' if cbbi < 30 else ('Mid cycle' if cbbi < 65 else ('Late cycle — caution' if cbbi < 90 else 'Cycle top'))}")
 
     # ── MACRO ──
+    # GLI Signal
+    gli_yoy   = data.get('gli_yoy', -10.0)
+    gli_now   = data.get('gli_now', 19.0)
+    gli_trend = data.get('gli_trend', 'Contracting')
+
+    if gli_yoy > 5:
+        gli_sig = ('BUY', '#00C853', '🟢')
+        gli_detail = f"GLI expanding +{gli_yoy:.1f}% YoY (${gli_now:.1f}T) — central banks are injecting liquidity. Historically a strong tailwind for Bitcoin."
+    elif gli_yoy > 0:
+        gli_sig = ('BUY', '#00C853', '🟢')
+        gli_detail = f"GLI growing +{gli_yoy:.1f}% YoY (${gli_now:.1f}T) — modest expansion in global liquidity. Mildly supportive for risk assets."
+    elif gli_yoy > -5:
+        gli_sig = ('CAUTION', '#FFC107', '🟡')
+        gli_detail = f"GLI flat/slightly contracting {gli_yoy:.1f}% YoY (${gli_now:.1f}T) — liquidity is tightening. Bitcoin may face headwinds until this reverses."
+    else:
+        gli_sig = ('SELL', '#FF3D57', '🔴')
+        gli_detail = f"GLI contracting {gli_yoy:.1f}% YoY (${gli_now:.1f}T) — significant liquidity withdrawal. This is the macro headwind Crypto Currently has been warning about."
+
+    add('Global Liquidity Index (GLI)', 'Macro',
+        gli_yoy, f"{gli_now:.1f}T ({'+' if gli_yoy >= 0 else ''}{gli_yoy:.1f}% YoY)",
+        gli_sig,
+        'Composite of Fed, ECB, and BoJ central bank balance sheets converted to USD. When central banks expand their balance sheets (print money), global liquidity rises and Bitcoin historically surges. Contraction = headwind. This is the #1 macro indicator Crypto Currently tracks.',
+        '> +5% YoY (Expanding — BTC Tailwind)', '< -5% YoY (Contracting — BTC Headwind)',
+        gli_detail)
+
     dxy = data.get('dxy_value', 104.0)
     dxy_chg = data.get('dxy_chg', 0.0)
     # DXY signal: below 100 = weak dollar = BUY for BTC; 100-105 = neutral; above 105 = strong dollar = CAUTION
@@ -774,6 +875,32 @@ def compute_overall_verdict(signals):
 
 def get_btc_ohlcv_5yr():
     """Fetch 5 years of daily BTC/USD OHLCV data. Returns a DataFrame with DatetimeIndex."""
+    # Primary: direct Yahoo Finance v8 API (works on Railway, no sandbox dependency)
+    try:
+        url = "https://query1.finance.yahoo.com/v8/finance/chart/BTC-USD"
+        params = {'interval': '1d', 'range': '5y', 'includeAdjustedClose': 'true'}
+        r = requests.get(url, params=params, timeout=20,
+                         headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('chart', {}).get('result'):
+                result = data['chart']['result'][0]
+                timestamps = result.get('timestamp', [])
+                quotes = result['indicators']['quote'][0]
+                df = pd.DataFrame({
+                    'open':   quotes.get('open', []),
+                    'high':   quotes.get('high', []),
+                    'low':    quotes.get('low', []),
+                    'close':  quotes.get('close', []),
+                    'volume': quotes.get('volume', []),
+                }, index=[datetime.fromtimestamp(t) for t in timestamps])
+                df = df.dropna(subset=['close'])
+                if not df.empty:
+                    return df
+    except Exception as e:
+        print(f"[get_btc_ohlcv_5yr yahoo] {e}")
+
+    # Try sandbox ApiClient if available
     try:
         from data_api import ApiClient
         client = ApiClient()
@@ -793,15 +920,16 @@ def get_btc_ohlcv_5yr():
                 'volume': quotes.get('volume', []),
             }, index=[datetime.fromtimestamp(t) for t in timestamps])
             df = df.dropna(subset=['close'])
-            return df
+            if not df.empty:
+                return df
     except Exception as e:
-        print(f"[get_btc_ohlcv_5yr] {e}")
+        print(f"[get_btc_ohlcv_5yr sandbox] {e}")
 
     # Fallback: CoinGecko
     try:
         url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
         params = {'vs_currency': 'usd', 'days': '1825', 'interval': 'daily'}
-        r = requests.get(url, params=params, timeout=15, headers={'User-Agent': 'Mozilla/5.0'})
+        r = requests.get(url, params=params, timeout=20, headers={'User-Agent': 'Mozilla/5.0'})
         if r.status_code == 200:
             prices = r.json().get('prices', [])
             df = pd.DataFrame(prices, columns=['ts', 'close'])
@@ -813,6 +941,6 @@ def get_btc_ohlcv_5yr():
             df['volume'] = 0
             return df
     except Exception as e:
-        print(f"[get_btc_ohlcv_5yr fallback] {e}")
+        print(f"[get_btc_ohlcv_5yr coingecko] {e}")
 
     return pd.DataFrame()

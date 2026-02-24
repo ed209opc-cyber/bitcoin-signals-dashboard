@@ -471,17 +471,9 @@ The **Overall Verdict** is a weighted consensus of all 17 indicators.
 """)
     st.markdown("---")
     st.markdown("""
-<div style='font-size:0.72rem; color:#555; text-align:center; line-height:1.8;'>
-<strong style='color:#888;'>📊 Global Liquidity Index (GLI)</strong><br>
-<span style='font-size:0.65rem;'>Not auto-fetched — monitor at<br>
-<a href='https://bitcoinandmarkets.com/gli' target='_blank' style='color:#F7931A;'>bitcoinandmarkets.com/gli</a></span>
-</div>
-""", unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("""
 <div style='font-size:0.7rem; color:#444; text-align:center; line-height:1.6;'>
 Data: CoinGecko · alternative.me<br>
-CoinGlass · Yahoo Finance<br><br>
+CoinGlass · Yahoo Finance · FRED API<br><br>
 ⚠️ Not financial advice.<br>
 Refreshes every 5 minutes.
 </div>
