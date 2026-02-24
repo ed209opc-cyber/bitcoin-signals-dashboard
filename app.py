@@ -17,7 +17,12 @@ st.set_page_config(
     page_title="Bitcoin Accumulation Signals",
     page_icon="₿",
     layout="centered",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None,
+    }
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -33,8 +38,13 @@ html, body, [class*="css"] {
     color: #E8E8F0;
 }
 .stApp { background: #0A0A0F; }
-section[data-testid="stSidebar"] { background: #0F0F1A; border-right: 1px solid #1E1E2E; }
-section[data-testid="stSidebar"] * { color: #C8C8D8 !important; }
+/* Hide sidebar and hamburger menu entirely */
+section[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+button[kind="header"] { display: none !important; }
+#MainMenu { display: none !important; }
+header[data-testid="stHeader"] { display: none !important; }
+footer { display: none !important; }
 
 /* ── Header ── */
 .dash-header {
@@ -489,47 +499,7 @@ def load_price_chart():
     except Exception:
         return None
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sidebar
-# ─────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div class="sidebar-logo">
-        <span class="sidebar-btc">₿</span>
-        <div class="sidebar-name">Bitcoin Signals</div>
-        <div class="sidebar-tagline">Accumulation Tracker</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.button("🔄 Refresh Data", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
-    st.markdown("---")
-    st.markdown("""
-**How to read signals:**
-
-🟢 **BUY** — Accumulation zone  
-🟡 **CAUTION** — Watch closely  
-🔴 **SELL** — Danger zone  
-  
-The **Overall Verdict** is a weighted consensus of all 17 indicators.
-""")
-    st.markdown("---")
-    st.markdown("""
-<div style='font-size:0.7rem; color:#444; text-align:center; line-height:1.6;'>
-Data: CoinGecko · alternative.me<br>
-CoinGlass · Yahoo Finance · FRED API<br><br>
-⚠️ Not financial advice.<br>
-Refreshes every 5 minutes.
-</div>
-""", unsafe_allow_html=True)
-    st.markdown("""
-<div style='font-size:0.68rem; color:#333; text-align:center; line-height:1.8; margin-top:12px; padding-top:10px; border-top:1px solid #1a1a2e;'>
-Built by <strong style='color:#666;'>Beau McKee</strong><br>
-<a href='mailto:beaumckee@gmail.com' style='color:#F7931A; text-decoration:none;'>beaumckee@gmail.com</a>
-</div>
-""", unsafe_allow_html=True)
+# Sidebar removed — content moved to page footer
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Load Data
@@ -1171,3 +1141,31 @@ with tab4:
     Past indicator performance does not guarantee future results.
     </div>
     """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Footer
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style='margin-top:40px; padding:20px 0 10px 0; border-top:1px solid #1E1E2E; text-align:center;'>
+    <div style='font-size:0.72rem; color:#444; line-height:2;'>
+        Data: CoinGecko &middot; alternative.me &middot; CoinGlass &middot; Yahoo Finance &middot; FRED API
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+        Auto-refreshes every 5 minutes
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+        The Overall Verdict is a weighted consensus of all 18 indicators
+    </div>
+    <div style='font-size:0.70rem; color:#333; margin-top:6px;'>
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+        <a href='mailto:beaumckee@gmail.com' style='color:#F7931A; text-decoration:none;'>beaumckee@gmail.com</a>
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+        <span style='color:#333;'>Not financial advice.</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Auto-refresh every 5 minutes
+components.html("""
+<script>
+    setTimeout(function() { window.location.reload(); }, 300000);
+</script>
+""", height=0)

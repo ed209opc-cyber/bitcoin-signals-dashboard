@@ -505,10 +505,10 @@ def get_all_indicators():
     rhodl_ratio    = onchain.get('rhodl', 1033)           # CoinGlass live
     reserve_risk   = onchain.get('reserve_risk', 0.0013)  # CoinGlass live
 
-    mayer_multiple = tech.get('mayer_multiple', 0.69)
-    ma_200w        = tech.get('ma_200w', 40000)
-    ma_200d        = tech.get('ma_200d', 90000)
-    ma_2yr         = tech.get('ma_2yr', 58000)
+    mayer_multiple = tech.get('mayer_multiple', 0.64)
+    ma_200w        = tech.get('ma_200w', 58500)   # ~$58,500 as of Feb 2026
+    ma_200d        = tech.get('ma_200d', 98500)   # ~$98,500 as of Feb 2026
+    ma_2yr         = tech.get('ma_2yr', 86500)    # ~$86,500 as of Feb 2026
     rsi_14         = tech.get('rsi_14', 35)
     rsi_weekly     = tech.get('rsi_weekly', 40)
 
