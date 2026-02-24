@@ -635,12 +635,29 @@ else:
 _bar_min, _bar_max = -20, 200
 _bar_pos = max(0, min(100, (_pct_200w - _bar_min) / (_bar_max - _bar_min) * 100))
 
+# Build the live commentary for the 200W MA banner tooltip
+_val_commentary_map = {
+    'Very Cheap':    f"Price is <b style='color:#1565C0'>below the 200W MA</b> at ${_ma200w:,.0f} — this is the deepest accumulation zone in Bitcoin's history. Every single bear market bottom has touched or gone below this level. An extremely rare and historically significant buying opportunity.",
+    'Cheap':         f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#00897B'>Cheap zone</b>. Historically, the 0–50% extension range has been one of the best accumulation windows of the entire cycle — well below the euphoria levels seen at cycle tops.",
+    'Fair Value':    f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#F9A825'>Fair Value zone</b>. This is normal bull market territory. Not the deepest discount, but not overextended either. Dollar-cost averaging remains reasonable.",
+    'Expensive':     f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#E65100'>Expensive zone</b>. Historically, the 100–150% extension range has been associated with late-cycle conditions. Consider reducing new exposure and tightening risk management.",
+    'Very Expensive': f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#B71C1C'>Very Expensive zone</b>. This extension level has historically coincided with cycle tops. Crypto Currently's model suggests extreme caution — this is a distribution zone, not an accumulation zone.",
+}
+_val_tooltip_what = "The 200-Week Moving Average (200W MA) is the average closing price of Bitcoin over the last 200 weeks (~4 years). It represents the long-term cost basis of the entire market. Every Bitcoin bear market bottom in history has touched or gone below this level. Crypto Currently uses extensions from this level to define valuation regions: Very Cheap (below), Cheap (0–50%), Fair Value (50–100%), Expensive (100–150%), Very Expensive (>150%)."
+_val_tooltip_now  = _val_commentary_map.get(_val_region, '')
+
 st.markdown(f"""
 <div style="background:{_val_bg}; border:1px solid {_val_border}; border-radius:12px; padding:14px 20px; margin-bottom:10px;">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
     <div style="display:flex; align-items:center; gap:14px;">
       <div>
-        <div style="font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px;">200W MA Valuation</div>
+        <div class="card-tooltip-wrap" style="font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px; cursor:help; display:inline-block;">200W MA Valuation &nbsp;<span style="color:#555; font-size:0.6rem;">&#9432;</span>
+          <div class="card-tooltip-popup" style="width:300px;">
+            <div class="ct-what">{_val_tooltip_what}</div>
+            <div class="ct-divider"></div>
+            <div class="ct-now">{_val_tooltip_now}</div>
+          </div>
+        </div>
         <div style="font-size:1.55rem; font-weight:800; color:{_val_color}; line-height:1;">{_val_region}</div>
         <div style="font-size:0.7rem; color:#aaa; margin-top:3px;">{_val_desc}</div>
       </div>
