@@ -1367,6 +1367,16 @@ with tab5:
 
         if _btc_h is None or len(_btc_h) == 0:
             st.warning("Unable to fetch BTC price history. Please try again shortly.")
+        elif not sig_history:
+            st.markdown("""
+            <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:30px; text-align:center; margin-top:20px;">
+                <div style="font-size:1.4rem; color:#F7931A; font-weight:700; margin-bottom:8px;">📡 Tracking Started</div>
+                <div style="color:#888; font-size:0.88rem;">Signal history is being recorded from today.<br>
+                Check back next week to see the first comparison data point.</div>
+                <div style="color:#555; font-size:0.75rem; margin-top:12px;">
+                Launch: Feb 24, 2025 · Executions: Monday 9:30 AM ET · Signals recorded daily</div>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             dates_sorted  = sorted(sig_history.keys())
             std_btc = adj_btc = std_invested = adj_invested = 0.0
@@ -1495,11 +1505,12 @@ st.markdown("""
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         The Overall Accumulation Signal is a consensus of all 19 indicators
     </div>
-    <div style='font-size:0.70rem; color:#333; margin-top:6px;'>
+    <div style='font-size:0.70rem; color:#555; margin-top:6px;'>
+        Built by <strong style='color:#666;'>Beau McKee</strong>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         <a href='mailto:beaumckee@gmail.com' style='color:#F7931A; text-decoration:none;'>beaumckee@gmail.com</a>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-        <span style='color:#333;'>Not financial advice.</span>
+        <span style='color:#555;'>⚠️ Not financial advice.</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
