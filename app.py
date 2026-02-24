@@ -652,7 +652,7 @@ st.markdown(f"""
     <div style="display:flex; align-items:center; gap:14px;">
       <div>
         <div class="card-tooltip-wrap" style="font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px; cursor:help; display:inline-block;">200W MA Valuation &nbsp;<span style="color:#555; font-size:0.6rem;">&#9432;</span>
-          <div class="card-tooltip-popup" style="width:300px;">
+          <div class="card-tooltip-popup" style="width:300px; text-transform:none; letter-spacing:normal;">
             <div class="ct-what">{_val_tooltip_what}</div>
             <div class="ct-divider"></div>
             <div class="ct-now">{_val_tooltip_now}</div>
