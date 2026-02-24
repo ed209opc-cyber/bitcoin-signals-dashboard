@@ -836,7 +836,6 @@ with tab1:
                 <div class="so-badge" style="background:{badge_bg}; color:{bar_color}; border:1px solid {badge_border};">
                     <span class="so-dot" style="background:{badge_dot};"></span>{s['signal']}
                 </div>
-                <div class="so-val">{s['value_str']}</div>
             </div>"""
 
     overview_html = f"""
@@ -846,7 +845,7 @@ with tab1:
 
     .so-row {{
         display:grid;
-        grid-template-columns: 1fr 90px 80px;
+        grid-template-columns: 1fr 90px;
         align-items:center;
         gap:8px;
         padding:4px 6px;
@@ -867,12 +866,11 @@ with tab1:
         padding-bottom:1px;
     }}
 
-    /* Tooltip popup — opens downward */
+    /* Tooltip popup — opens downward, clamped to viewport */
     .so-tooltip {{
         visibility:hidden; opacity:0;
-        position:absolute; z-index:9999;
-        left:0; top:calc(100% + 6px);
-        width:300px; min-width:200px;
+        position:fixed; z-index:99999;
+        width:280px; min-width:200px;
         background:#1A1A2E;
         border:1px solid #2A2A4E;
         border-radius:10px;
@@ -884,6 +882,7 @@ with tab1:
     .so-name-wrap:hover .so-tooltip {{
         visibility:visible; opacity:1;
     }}
+    /* JS will position tooltip via mousemove */
     .so-tt-section {{
         font-family:'Inter',sans-serif; font-size:0.73rem;
         color:#B8B8CC; line-height:1.55; padding:9px 12px;
@@ -904,12 +903,22 @@ with tab1:
         width:5px; height:5px; border-radius:50%; flex-shrink:0;
         display:inline-block;
     }}
-    .so-val {{
-        font-family:'JetBrains Mono',monospace; font-size:0.70rem;
-        color:#666; text-align:right; white-space:nowrap;
-        width:80px; overflow:hidden; text-overflow:ellipsis;
-    }}
+
     </style>
+    <script>
+    document.addEventListener('mousemove', function(e) {{
+        var tt = document.querySelector('.so-name-wrap:hover .so-tooltip');
+        if (!tt) return;
+        var x = e.clientX + 12;
+        var y = e.clientY + 12;
+        // prevent right overflow
+        if (x + 280 > window.innerWidth) x = e.clientX - 292;
+        // prevent bottom overflow
+        if (y + tt.offsetHeight > window.innerHeight) y = e.clientY - tt.offsetHeight - 8;
+        tt.style.left = x + 'px';
+        tt.style.top  = y + 'px';
+    }});
+    </script>
     <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:10px; padding:2px 4px;">
     {rows_html}
     </div>
