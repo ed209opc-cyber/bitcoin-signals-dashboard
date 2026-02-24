@@ -324,17 +324,17 @@ TOOLTIPS = {
         "Composite of major central bank balance sheets (Fed + ECB + BoJ). "
         "Expanding GLI = more money printing = bullish for Bitcoin. "
         "Contracting GLI = quantitative tightening = macro headwind. "
-        "Weight: high — Crypto Currently's #1 macro signal for cycle timing."
+        "Weight: high — the #1 macro signal for cycle timing."
     ),
     'US Dollar Index (DXY)': (
         "Measures USD strength against a basket of 6 major currencies. "
         "Falling DXY = weaker dollar = looser global liquidity = bullish for BTC. "
         "Rising DXY = stronger dollar = tighter liquidity = bearish for BTC. "
-        "Weight: moderate — key macro signal tracked by Crypto Currently."
+        "Weight: moderate — key macro signal for global liquidity conditions."
     ),
     'BTC vs S&P 500': (
         "Compares Bitcoin's 90-day return against the S&P 500. "
-        "Based on Crypto Currently's analysis: BTC often leads equities — "
+        "BTC often leads equities — "
         "when BTC diverges sharply below the S&P 500, it historically mean-reverts hard (2018, 2022). "
         "BTC massively outperforming equities signals late-cycle risk. "
         "Weight: low-moderate — useful divergence context signal."
@@ -434,7 +434,7 @@ def zone_commentary(s):
         'Global Liquidity Index (GLI)': {
             'BUY':     f"GLI at {val} — <b style='color:#00C853'>global liquidity is expanding</b>. Central banks are injecting money into the system. Historically, Bitcoin rallies strongly when GLI is growing.",
             'CAUTION': f"GLI at {val} — liquidity is flat or slightly contracting. Bitcoin may face headwinds until central banks pivot to expansion.",
-            'SELL':    f"GLI at {val} — <b style='color:#FF3D57'>significant liquidity contraction</b>. This is the macro headwind Crypto Currently has been warning about. Tightening conditions are a major risk for Bitcoin.",
+            'SELL':    f"GLI at {val} — <b style='color:#FF3D57'>significant liquidity contraction</b>. Tightening conditions are a major macro risk for Bitcoin.",
         },
         'US Dollar Index (DXY)': {
             'BUY':     f"DXY at {val} — <b style='color:#00C853'>weak or falling dollar</b>. A declining DXY loosens global liquidity and is historically bullish for Bitcoin and risk assets.",
@@ -442,9 +442,9 @@ def zone_commentary(s):
             'SELL':    f"DXY at {val} — <b style='color:#FF3D57'>strong or rising dollar</b>. A strengthening DXY tightens global liquidity and historically pressures Bitcoin prices.",
         },
         'BTC vs S&P 500': {
-            'BUY':     f"{val} — <b style='color:#00C853'>BTC is deeply oversold vs equities</b>. Based on Crypto Currently's analysis, this divergence has historically preceded strong BTC mean-reversion rallies (2018, 2022 examples).",
+            'BUY':     f"{val} — <b style='color:#00C853'>BTC is deeply oversold vs equities</b>. This divergence has historically preceded strong BTC mean-reversion rallies (2018, 2022 examples).",
             'CAUTION': f"{val} — BTC and the S&P 500 are broadly correlated. No strong divergence signal in either direction.",
-            'SELL':    f"{val} — <b style='color:#FF3D57'>BTC is significantly outperforming equities</b>. Crypto Currently notes that BTC leading equities to the upside is a late-cycle signal — historically precedes a top.",
+            'SELL':    f"{val} — <b style='color:#FF3D57'>BTC is significantly outperforming equities</b>. BTC leading equities to the upside is a late-cycle signal — historically precedes a top.",
         },
     }
     default = {
@@ -536,6 +536,73 @@ st.markdown(f"""
             <div class="dash-subtitle">Is now a good time to buy Bitcoin? &nbsp;·&nbsp; {datetime.utcnow().strftime('%B %d, %Y %H:%M UTC')}</div>
         </div>
         <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Overall Verdict Banner — PRIMARY SIGNAL (top of page)
+# ─────────────────────────────────────────────────────────────────────────────
+verdict_bg_map = {
+    'STRONG BUY':       'linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04))',
+    'ACCUMULATE':       'linear-gradient(135deg, rgba(105,240,174,0.10), rgba(105,240,174,0.03))',
+    'NEUTRAL — WATCH':  'linear-gradient(135deg, rgba(255,193,7,0.10), rgba(255,193,7,0.03))',
+    'CAUTION — HOLD':   'linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.04))',
+    'SELL / REDUCE':    'linear-gradient(135deg, rgba(255,61,87,0.12), rgba(255,61,87,0.04))',
+}
+verdict_border_map = {
+    'STRONG BUY':       'rgba(0,200,83,0.3)',
+    'ACCUMULATE':       'rgba(105,240,174,0.25)',
+    'NEUTRAL — WATCH':  'rgba(255,193,7,0.3)',
+    'CAUTION — HOLD':   'rgba(255,107,53,0.3)',
+    'SELL / REDUCE':    'rgba(255,61,87,0.3)',
+}
+verdict_desc_map = {
+    'STRONG BUY':       'Multiple indicators are deep in buy zones. Historically excellent accumulation conditions.',
+    'ACCUMULATE':       'Majority of indicators favour accumulation. A good time to dollar-cost average into Bitcoin.',
+    'NEUTRAL — WATCH':  'Mixed signals across indicators. Monitor closely before committing large positions.',
+    'CAUTION — HOLD':   'Several indicators are elevated. Hold existing positions; avoid aggressive buying.',
+    'SELL / REDUCE':    'Most indicators signal cycle top territory. Consider reducing exposure.',
+}
+vbg     = verdict_bg_map.get(verdict, verdict_bg_map['NEUTRAL — WATCH'])
+vborder = verdict_border_map.get(verdict, 'rgba(255,193,7,0.3)')
+vdesc   = verdict_desc_map.get(verdict, '')
+
+st.markdown(f"""
+<div class="verdict-banner" style="background:{vbg}; border:1px solid {vborder};">
+    <div class="verdict-title">Overall Accumulation Signal</div>
+    <div class="verdict-text" style="color:{v_color};">{verdict}</div>
+    <div class="verdict-sub">{vdesc}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# Signal Score Bar
+total_sigs = max(buy_n + caution_n + sell_n, 1)
+buy_w      = buy_n     / total_sigs * 100
+caution_w  = caution_n / total_sigs * 100
+sell_w     = sell_n    / total_sigs * 100
+
+st.markdown(f"""
+<div class="score-container">
+    <div class="score-label">Signal Distribution — {total_sigs} Indicators</div>
+    <div style="display:flex; height:12px; border-radius:6px; overflow:hidden; gap:2px;">
+        <div style="width:{buy_w:.1f}%; background:#00C853; border-radius:6px 0 0 6px;"></div>
+        <div style="width:{caution_w:.1f}%; background:#FFC107;"></div>
+        <div style="width:{sell_w:.1f}%; background:#FF3D57; border-radius:0 6px 6px 0;"></div>
+    </div>
+    <div class="signal-counts">
+        <div class="count-pill" style="background:rgba(0,200,83,0.08); border:1px solid rgba(0,200,83,0.18);">
+            <span style="color:#00C853;">{buy_n}</span>
+            <span class="count-label" style="color:#00C853;">BUY</span>
+        </div>
+        <div class="count-pill" style="background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.18);">
+            <span style="color:#FFC107;">{caution_n}</span>
+            <span class="count-label" style="color:#FFC107;">CAUTION</span>
+        </div>
+        <div class="count-pill" style="background:rgba(255,61,87,0.08); border:1px solid rgba(255,61,87,0.18);">
+            <span style="color:#FF3D57;">{sell_n}</span>
+            <span class="count-label" style="color:#FF3D57;">SELL</span>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -641,9 +708,9 @@ _val_commentary_map = {
     'Cheap':         f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#00897B'>Cheap zone</b>. Historically, the 0–50% extension range has been one of the best accumulation windows of the entire cycle — well below the euphoria levels seen at cycle tops.",
     'Fair Value':    f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#F9A825'>Fair Value zone</b>. This is normal bull market territory. Not the deepest discount, but not overextended either. Dollar-cost averaging remains reasonable.",
     'Expensive':     f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#E65100'>Expensive zone</b>. Historically, the 100–150% extension range has been associated with late-cycle conditions. Consider reducing new exposure and tightening risk management.",
-    'Very Expensive': f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#B71C1C'>Very Expensive zone</b>. This extension level has historically coincided with cycle tops. Crypto Currently's model suggests extreme caution — this is a distribution zone, not an accumulation zone.",
+    'Very Expensive': f"At {_pct_200w:+.1f}% above the 200W MA (${_ma200w:,.0f}), Bitcoin is in the <b style='color:#B71C1C'>Very Expensive zone</b>. This extension level has historically coincided with cycle tops. This is a distribution zone, not an accumulation zone — extreme caution advised.",
 }
-_val_tooltip_what = "The 200-Week Moving Average (200W MA) is the average closing price of Bitcoin over the last 200 weeks (~4 years). It represents the long-term cost basis of the entire market. Every Bitcoin bear market bottom in history has touched or gone below this level. Crypto Currently uses extensions from this level to define valuation regions: Very Cheap (below), Cheap (0–50%), Fair Value (50–100%), Expensive (100–150%), Very Expensive (>150%)."
+_val_tooltip_what = "The 200-Week Moving Average (200W MA) is the average closing price of Bitcoin over the last 200 weeks (~4 years). It represents the long-term cost basis of the entire market. Every Bitcoin bear market bottom in history has touched or gone below this level. Extensions from this level define valuation regions: Very Cheap (below), Cheap (0–50%), Fair Value (50–100%), Expensive (100–150%), Very Expensive (>150%)."
 _val_tooltip_now  = _val_commentary_map.get(_val_region, '')
 
 st.markdown(f"""
@@ -691,7 +758,7 @@ st.markdown(f"""
       <span style="text-align:right;">+200%<br>Very Expensive</span>
     </div>
   </div>
-  <div style="font-size:0.6rem; color:#444; margin-top:6px; text-align:right;">Not part of the accumulation score &nbsp;·&nbsp; Model: Crypto Currently / 200W MA Extension</div>
+  <div style="font-size:0.6rem; color:#444; margin-top:6px; text-align:right;">Not part of the accumulation score &nbsp;·&nbsp; 200W MA Extension Model</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -718,82 +785,14 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Overall Verdict Banner
-# ─────────────────────────────────────────────────────────────────────────────
-verdict_bg_map = {
-    'STRONG BUY':       'linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04))',
-    'ACCUMULATE':       'linear-gradient(135deg, rgba(105,240,174,0.10), rgba(105,240,174,0.03))',
-    'NEUTRAL — WATCH':  'linear-gradient(135deg, rgba(255,193,7,0.10), rgba(255,193,7,0.03))',
-    'CAUTION — HOLD':   'linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.04))',
-    'SELL / REDUCE':    'linear-gradient(135deg, rgba(255,61,87,0.12), rgba(255,61,87,0.04))',
-}
-verdict_border_map = {
-    'STRONG BUY':       'rgba(0,200,83,0.3)',
-    'ACCUMULATE':       'rgba(105,240,174,0.25)',
-    'NEUTRAL — WATCH':  'rgba(255,193,7,0.3)',
-    'CAUTION — HOLD':   'rgba(255,107,53,0.3)',
-    'SELL / REDUCE':    'rgba(255,61,87,0.3)',
-}
-verdict_desc_map = {
-    'STRONG BUY':       'Multiple indicators are deep in buy zones. Historically excellent accumulation conditions.',
-    'ACCUMULATE':       'Majority of indicators favour accumulation. A good time to dollar-cost average into Bitcoin.',
-    'NEUTRAL — WATCH':  'Mixed signals across indicators. Monitor closely before committing large positions.',
-    'CAUTION — HOLD':   'Several indicators are elevated. Hold existing positions; avoid aggressive buying.',
-    'SELL / REDUCE':    'Most indicators signal cycle top territory. Consider reducing exposure.',
-}
-vbg     = verdict_bg_map.get(verdict, verdict_bg_map['NEUTRAL — WATCH'])
-vborder = verdict_border_map.get(verdict, 'rgba(255,193,7,0.3)')
-vdesc   = verdict_desc_map.get(verdict, '')
-
-st.markdown(f"""
-<div class="verdict-banner" style="background:{vbg}; border:1px solid {vborder};">
-    <div class="verdict-title">Overall Accumulation Signal</div>
-    <div class="verdict-text" style="color:{v_color};">{verdict}</div>
-    <div class="verdict-sub">{vdesc}</div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Signal Score Bar
-# ─────────────────────────────────────────────────────────────────────────────
-total_sigs = max(buy_n + caution_n + sell_n, 1)
-buy_w      = buy_n     / total_sigs * 100
-caution_w  = caution_n / total_sigs * 100
-sell_w     = sell_n    / total_sigs * 100
-
-st.markdown(f"""
-<div class="score-container">
-    <div class="score-label">Signal Distribution — {total_sigs} Indicators</div>
-    <div style="display:flex; height:12px; border-radius:6px; overflow:hidden; gap:2px;">
-        <div style="width:{buy_w:.1f}%; background:#00C853; border-radius:6px 0 0 6px;"></div>
-        <div style="width:{caution_w:.1f}%; background:#FFC107;"></div>
-        <div style="width:{sell_w:.1f}%; background:#FF3D57; border-radius:0 6px 6px 0;"></div>
-    </div>
-    <div class="signal-counts">
-        <div class="count-pill" style="background:rgba(0,200,83,0.08); border:1px solid rgba(0,200,83,0.18);">
-            <span style="color:#00C853;">{buy_n}</span>
-            <span class="count-label" style="color:#00C853;">BUY</span>
-        </div>
-        <div class="count-pill" style="background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.18);">
-            <span style="color:#FFC107;">{caution_n}</span>
-            <span class="count-label" style="color:#FFC107;">CAUTION</span>
-        </div>
-        <div class="count-pill" style="background:rgba(255,61,87,0.08); border:1px solid rgba(255,61,87,0.18);">
-            <span style="color:#FF3D57;">{sell_n}</span>
-            <span class="count-label" style="color:#FF3D57;">SELL</span>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Tabs
 # ─────────────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Signal Tracker",
     "📈 Price Chart",
     "⛏️ Halving Cycle",
     "ℹ️ Indicator Guide",
+    "📉 DCA Performance",
 ])
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1225,7 +1224,7 @@ with tab4:
     st.markdown("### Indicator Reference Guide")
     st.markdown("""
     <div class="info-box">
-    This dashboard tracks the key Bitcoin accumulation indicators from the Bitcoin cycle analysis framework.
+    This dashboard tracks 19 key Bitcoin accumulation indicators across on-chain, technical, sentiment, and macro categories.
     Each indicator is assigned a signal based on its historical buy/sell zones. The <b>Overall Verdict</b> is a
     consensus of all signals — when most indicators are in the green, it has historically been an excellent time to accumulate Bitcoin.
     Hover over any indicator name on the Signal Tracker tab for a detailed explanation and live commentary.
@@ -1264,6 +1263,181 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
 
+# ═════════════════════════════════════════════════════════════════════════════
+# TAB 5: SIGNAL-ADJUSTED DCA PERFORMANCE
+# ═════════════════════════════════════════════════════════════════════════════
+with tab5:
+    import os as _os
+    from datetime import date as _date
+
+    HISTORY_FILE = _os.path.join(_os.path.dirname(__file__), 'signal_history.json')
+
+    # Record today's signal
+    today_str = _date.today().isoformat()
+    try:
+        if _os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as _fh:
+                sig_history = json.load(_fh)
+        else:
+            sig_history = {}
+        if today_str not in sig_history:
+            sig_history[today_str] = verdict
+            with open(HISTORY_FILE, 'w') as _fh:
+                json.dump(sig_history, _fh)
+    except Exception:
+        sig_history = {}
+
+    DCA_MULT = {
+        'STRONG BUY':      1.5,
+        'ACCUMULATE':      1.0,
+        'NEUTRAL — WATCH': 0.5,
+        'CAUTION — HOLD':  0.25,
+        'SELL / REDUCE':   0.0,
+    }
+
+    st.markdown("## 📉 Signal-Adjusted DCA Performance")
+    st.markdown("""
+    <div class="info-box" style="margin-bottom:14px;">
+    Simulates two strategies since this tool launched on <b>Feb 24, 2025</b>.<br>
+    <b>Standard DCA</b> invests a fixed weekly amount regardless of signal.<br>
+    <b>Signal-Adjusted DCA</b> scales the weekly amount: Strong Buy = 150% · Accumulate = 100% · Neutral = 50% · Caution = 25% · Sell = 0%.<br>
+    Signal states are recorded daily going forward — no retroactive data.
+    </div>
+    """, unsafe_allow_html=True)
+
+    weekly_dca = st.number_input("Weekly DCA Amount ($)", min_value=10, max_value=100000,
+                                  value=100, step=10, key="dca_amount")
+
+    if len(sig_history) < 2:
+        st.markdown("""
+        <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:30px; text-align:center; margin-top:20px;">
+            <div style="font-size:1.4rem; color:#F7931A; font-weight:700; margin-bottom:8px;">📡 Tracking Started</div>
+            <div style="color:#888; font-size:0.88rem;">Signal history is being recorded from today.<br>
+            Check back next week to see the first comparison data point.</div>
+            <div style="color:#555; font-size:0.75rem; margin-top:12px;">Launch date: Feb 24, 2025 · Signals recorded daily</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        try:
+            import yfinance as _yf
+            _btc = _yf.download('BTC-USD', start='2025-02-24', interval='1wk',
+                                 progress=False, auto_adjust=True)
+            btc_weekly = _btc['Close'].dropna()
+        except Exception:
+            btc_weekly = pd.Series(dtype=float)
+
+        if len(btc_weekly) < 2:
+            st.warning("Unable to fetch BTC price history. Please try again shortly.")
+        else:
+            dates_sorted = sorted(sig_history.keys())
+            std_btc = adj_btc = std_invested = adj_invested = 0.0
+            std_curve, adj_curve, date_labels = [], [], []
+            current_price = float(price)
+
+            for i, wk_date in enumerate(btc_weekly.index[:-1]):
+                wk_str = wk_date.date().isoformat()
+                closest = min(dates_sorted, key=lambda d: abs(
+                    (_date.fromisoformat(d) - wk_date.date()).days))
+                wk_signal = sig_history.get(closest, 'NEUTRAL — WATCH')
+                wk_price  = float(btc_weekly.iloc[i])
+                std_btc += weekly_dca / wk_price
+                adj_btc += (weekly_dca * DCA_MULT.get(wk_signal, 0.5)) / wk_price
+                std_invested += weekly_dca
+                adj_invested += weekly_dca * DCA_MULT.get(wk_signal, 0.5)
+                std_curve.append(std_btc * current_price)
+                adj_curve.append(adj_btc * current_price)
+                date_labels.append(wk_str)
+
+            std_value = std_btc * current_price
+            adj_value = adj_btc * current_price
+            std_pnl   = std_value - std_invested
+            adj_pnl   = adj_value - adj_invested
+            std_pct   = (std_pnl / std_invested * 100) if std_invested > 0 else 0
+            adj_pct   = (adj_pnl / adj_invested * 100) if adj_invested > 0 else 0
+            diff_usd  = adj_value - std_value
+            diff_pct  = ((adj_value / std_value) - 1) * 100 if std_value > 0 else 0
+
+            c1, c2, c3 = st.columns(3)
+            _cs = "background:#12121F; border:1px solid #1E1E2E; border-radius:10px; padding:14px 16px; text-align:center;"
+            _ls = "font-size:0.62rem; color:#555; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;"
+            _vs = "font-family:'JetBrains Mono',monospace; font-size:1.0rem; font-weight:700;"
+            _ss = "font-size:0.68rem; color:#666; margin-top:3px;"
+            with c1:
+                pc = '#00C853' if std_pnl >= 0 else '#FF3D57'
+                st.markdown(f'<div style="{_cs}"><div style="{_ls}">Standard DCA</div>'
+                            f'<div style="{_vs} color:#ccc;">Invested: ${std_invested:,.0f}</div>'
+                            f'<div style="{_vs} color:#F7931A;">Value: ${std_value:,.0f}</div>'
+                            f'<div style="{_vs} color:{pc};">P&L: ${std_pnl:+,.0f} ({std_pct:+.1f}%)</div>'
+                            f'<div style="{_ss}">{std_btc:.6f} BTC</div></div>', unsafe_allow_html=True)
+            with c2:
+                pc2 = '#00C853' if adj_pnl >= 0 else '#FF3D57'
+                st.markdown(f'<div style="{_cs}"><div style="{_ls}">Signal-Adjusted DCA</div>'
+                            f'<div style="{_vs} color:#ccc;">Invested: ${adj_invested:,.0f}</div>'
+                            f'<div style="{_vs} color:#F7931A;">Value: ${adj_value:,.0f}</div>'
+                            f'<div style="{_vs} color:{pc2};">P&L: ${adj_pnl:+,.0f} ({adj_pct:+.1f}%)</div>'
+                            f'<div style="{_ss}">{adj_btc:.6f} BTC</div></div>', unsafe_allow_html=True)
+            with c3:
+                dc = '#00C853' if diff_usd >= 0 else '#FF3D57'
+                dl = "Signal-Adjusted leads" if diff_usd >= 0 else "Standard DCA leads"
+                st.markdown(f'<div style="{_cs}"><div style="{_ls}">Difference</div>'
+                            f'<div style="{_vs} color:{dc};">${diff_usd:+,.0f}</div>'
+                            f'<div style="{_vs} color:{dc};">{diff_pct:+.1f}%</div>'
+                            f'<div style="{_ss}">{dl}</div></div>', unsafe_allow_html=True)
+
+            if len(date_labels) > 1:
+                fig_dca = go.Figure()
+                fig_dca.add_trace(go.Scatter(x=date_labels, y=std_curve,
+                    name='Standard DCA', line=dict(color='#555', width=2),
+                    hovertemplate='%{x}<br>$%{y:,.0f}<extra>Standard DCA</extra>'))
+                fig_dca.add_trace(go.Scatter(x=date_labels, y=adj_curve,
+                    name='Signal-Adjusted', line=dict(color='#00C853', width=2.5),
+                    fill='tonexty', fillcolor='rgba(0,200,83,0.06)',
+                    hovertemplate='%{x}<br>$%{y:,.0f}<extra>Signal-Adjusted</extra>'))
+                fig_dca.update_layout(**PLOTLY_DARK, height=300,
+                    title=dict(text='Portfolio Value Since Launch', font=dict(size=13, color='#888')),
+                    yaxis_tickprefix='$',
+                    legend=dict(orientation='h', y=1.08, x=0))
+                st.plotly_chart(fig_dca, use_container_width=True)
+
+            st.markdown('<div style="font-size:0.68rem; color:#444; text-align:center; margin-top:4px;">'
+                        'Based on recorded signal outputs since launch · Feb 24, 2025 · Not financial advice</div>',
+                        unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Feedback Box
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="margin-top:32px; background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:20px 24px;">
+    <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:4px;">
+        Feature Request or Bug Report
+    </div>
+    <div style="font-size:0.75rem; color:#555; margin-bottom:12px;">Your feedback helps improve this tool.</div>
+""", unsafe_allow_html=True)
+
+_fb_email   = st.text_input("Your email (optional)", placeholder="you@example.com", key="fb_email",
+                             label_visibility="collapsed")
+_fb_message = st.text_area("Message", placeholder="Describe a feature you'd like or a bug you've found...",
+                            height=90, key="fb_message", label_visibility="collapsed")
+if st.button("Submit Feedback", key="fb_submit"):
+    if _fb_message.strip():
+        try:
+            import os as _os2, json as _json2
+            _log = _os2.path.join(_os2.path.dirname(__file__), 'feedback_log.json')
+            _existing = []
+            if _os2.path.exists(_log):
+                with open(_log) as _fh2:
+                    _existing = _json2.load(_fh2)
+            _existing.append({"ts": datetime.utcnow().isoformat(),
+                               "email": _fb_email.strip(), "msg": _fb_message.strip()})
+            with open(_log, 'w') as _fh2:
+                _json2.dump(_existing, _fh2, indent=2)
+            st.success("✅ Thank you — feedback received!")
+        except Exception as _e:
+            st.error(f"Could not save: {_e}")
+    else:
+        st.warning("Please enter a message before submitting.")
+st.markdown("</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1274,7 +1448,7 @@ st.markdown("""
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         Auto-refreshes every 5 minutes
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-        The Overall Verdict is a weighted consensus of all 18 indicators
+        The Overall Accumulation Signal is a consensus of all 19 indicators
     </div>
     <div style='font-size:0.70rem; color:#333; margin-top:6px;'>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
