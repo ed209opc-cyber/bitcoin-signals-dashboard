@@ -6,3 +6,4 @@ requests>=2.31.0
 pycoingecko>=3.1.0
 openai>=1.0.0
 yfinance>=0.2.36
+pytz

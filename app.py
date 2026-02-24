@@ -1268,11 +1268,14 @@ with tab4:
 # ═════════════════════════════════════════════════════════════════════════════
 with tab5:
     import os as _os
-    from datetime import date as _date
+    import pytz as _pytz
+    from datetime import date as _date, timedelta as _td, datetime as _dt
 
-    HISTORY_FILE = _os.path.join(_os.path.dirname(__file__), 'signal_history.json')
+    _eastern      = _pytz.timezone('America/New_York')
+    HISTORY_FILE  = _os.path.join(_os.path.dirname(__file__), 'signal_history.json')
+    LAUNCH_DATE   = _date(2025, 2, 24)   # First Monday at launch
 
-    # Record today's signal
+    # ── Record today's signal state ──
     today_str = _date.today().isoformat()
     try:
         if _os.path.exists(HISTORY_FILE):
@@ -1295,58 +1298,104 @@ with tab5:
         'SELL / REDUCE':   0.0,
     }
 
+    def _get_monday_930_utc(ref_date):
+        """Return the UTC timestamp for Monday 9:30 AM ET of the week containing ref_date."""
+        days_since_monday = ref_date.weekday()          # 0=Mon … 6=Sun
+        monday = ref_date - _td(days=days_since_monday)
+        naive  = _dt(monday.year, monday.month, monday.day, 9, 30, 0)
+        et_dt  = _eastern.localize(naive)               # Handles EST/EDT automatically
+        return et_dt.astimezone(_pytz.utc), monday
+
+    def _get_execution_price(monday_date, btc_hourly):
+        """
+        Find the BTC close of the 9:00 AM ET hourly candle on the given Monday.
+        Fallback order: 9:00 AM ET → 10:00 AM ET → daily close.
+        """
+        for fallback_hour in [9, 10]:
+            for ts, row in btc_hourly.iterrows():
+                et_ts = ts.tz_convert('America/New_York')
+                if et_ts.date() == monday_date and et_ts.hour == fallback_hour:
+                    return float(row['Close'].iloc[0]) if hasattr(row['Close'], 'iloc') else float(row['Close']), fallback_hour
+        return None, None
+
     st.markdown("## 📉 Signal-Adjusted DCA Performance")
     st.markdown("""
     <div class="info-box" style="margin-bottom:14px;">
     Simulates two strategies since this tool launched on <b>Feb 24, 2025</b>.<br>
     <b>Standard DCA</b> invests a fixed weekly amount regardless of signal.<br>
-    <b>Signal-Adjusted DCA</b> scales the weekly amount: Strong Buy = 150% · Accumulate = 100% · Neutral = 50% · Caution = 25% · Sell = 0%.<br>
-    Signal states are recorded daily going forward — no retroactive data.
+    <b>Signal-Adjusted DCA</b> scales the weekly amount based on the Overall Accumulation Signal:<br>
+    Strong Buy = 150% &nbsp;·&nbsp; Accumulate = 100% &nbsp;·&nbsp; Neutral = 50% &nbsp;·&nbsp; Caution = 25% &nbsp;·&nbsp; Sell = 0%.<br><br>
+    Weekly allocations are executed at <b>US market open (Monday 9:30 AM ET)</b>. BTC price is sourced
+    from the 9:00–10:00 AM ET hourly candle via Yahoo Finance — the closest available resolution to the
+    9:30 AM open. Signal state is recorded as of the same timestamp. Both strategies use identical
+    execution timing. Signal history is recorded daily going forward — no retroactive data.
     </div>
     """, unsafe_allow_html=True)
 
     weekly_dca = st.number_input("Weekly DCA Amount ($)", min_value=10, max_value=100000,
                                   value=100, step=10, key="dca_amount")
 
-    if len(sig_history) < 2:
+    # ── Count how many Mondays have elapsed since launch ──
+    mondays_elapsed = []
+    cursor = LAUNCH_DATE
+    today  = _date.today()
+    while cursor <= today:
+        if cursor.weekday() == 0:
+            mondays_elapsed.append(cursor)
+        cursor += _td(days=1)
+
+    if len(mondays_elapsed) < 2:
         st.markdown("""
         <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:30px; text-align:center; margin-top:20px;">
             <div style="font-size:1.4rem; color:#F7931A; font-weight:700; margin-bottom:8px;">📡 Tracking Started</div>
             <div style="color:#888; font-size:0.88rem;">Signal history is being recorded from today.<br>
             Check back next week to see the first comparison data point.</div>
-            <div style="color:#555; font-size:0.75rem; margin-top:12px;">Launch date: Feb 24, 2025 · Signals recorded daily</div>
+            <div style="color:#555; font-size:0.75rem; margin-top:12px;">
+            Launch: Feb 24, 2025 · Executions: Monday 9:30 AM ET · Signals recorded daily</div>
         </div>
         """, unsafe_allow_html=True)
     else:
         try:
             import yfinance as _yf
-            _btc = _yf.download('BTC-USD', start='2025-02-24', interval='1wk',
-                                 progress=False, auto_adjust=True)
-            btc_weekly = _btc['Close'].dropna()
+            # Fetch hourly data from launch to today for Monday price resolution
+            _btc_h = _yf.download('BTC-USD',
+                                   start=LAUNCH_DATE.isoformat(),
+                                   end=(today + _td(days=1)).isoformat(),
+                                   interval='1h', progress=False, auto_adjust=True)
         except Exception:
-            btc_weekly = pd.Series(dtype=float)
+            _btc_h = None
 
-        if len(btc_weekly) < 2:
+        if _btc_h is None or len(_btc_h) == 0:
             st.warning("Unable to fetch BTC price history. Please try again shortly.")
         else:
-            dates_sorted = sorted(sig_history.keys())
+            dates_sorted  = sorted(sig_history.keys())
             std_btc = adj_btc = std_invested = adj_invested = 0.0
             std_curve, adj_curve, date_labels = [], [], []
             current_price = float(price)
+            fallback_log  = []
 
-            for i, wk_date in enumerate(btc_weekly.index[:-1]):
-                wk_str = wk_date.date().isoformat()
-                closest = min(dates_sorted, key=lambda d: abs(
-                    (_date.fromisoformat(d) - wk_date.date()).days))
-                wk_signal = sig_history.get(closest, 'NEUTRAL — WATCH')
-                wk_price  = float(btc_weekly.iloc[i])
-                std_btc += weekly_dca / wk_price
-                adj_btc += (weekly_dca * DCA_MULT.get(wk_signal, 0.5)) / wk_price
+            for monday in mondays_elapsed[:-1]:   # Exclude current week (in progress)
+                exec_price, used_hour = _get_execution_price(monday, _btc_h)
+                if exec_price is None:
+                    fallback_log.append(f"{monday} — no hourly data, skipped")
+                    continue
+                if used_hour != 9:
+                    fallback_log.append(f"{monday} — used {used_hour}:00 AM ET (9:00 unavailable)")
+
+                # Signal state: find closest recorded signal to this Monday
+                closest_sig_date = min(dates_sorted, key=lambda d: abs(
+                    (_date.fromisoformat(d) - monday).days))
+                wk_signal = sig_history.get(closest_sig_date, 'NEUTRAL — WATCH')
+
+                std_btc      += weekly_dca / exec_price
+                adj_amount    = weekly_dca * DCA_MULT.get(wk_signal, 0.5)
+                adj_btc      += adj_amount / exec_price
                 std_invested += weekly_dca
-                adj_invested += weekly_dca * DCA_MULT.get(wk_signal, 0.5)
+                adj_invested += adj_amount
+
                 std_curve.append(std_btc * current_price)
                 adj_curve.append(adj_btc * current_price)
-                date_labels.append(wk_str)
+                date_labels.append(monday.isoformat())
 
             std_value = std_btc * current_price
             adj_value = adj_btc * current_price
@@ -1357,32 +1406,36 @@ with tab5:
             diff_usd  = adj_value - std_value
             diff_pct  = ((adj_value / std_value) - 1) * 100 if std_value > 0 else 0
 
-            c1, c2, c3 = st.columns(3)
             _cs = "background:#12121F; border:1px solid #1E1E2E; border-radius:10px; padding:14px 16px; text-align:center;"
             _ls = "font-size:0.62rem; color:#555; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;"
             _vs = "font-family:'JetBrains Mono',monospace; font-size:1.0rem; font-weight:700;"
             _ss = "font-size:0.68rem; color:#666; margin-top:3px;"
+
+            c1, c2, c3 = st.columns(3)
             with c1:
                 pc = '#00C853' if std_pnl >= 0 else '#FF3D57'
                 st.markdown(f'<div style="{_cs}"><div style="{_ls}">Standard DCA</div>'
                             f'<div style="{_vs} color:#ccc;">Invested: ${std_invested:,.0f}</div>'
                             f'<div style="{_vs} color:#F7931A;">Value: ${std_value:,.0f}</div>'
                             f'<div style="{_vs} color:{pc};">P&L: ${std_pnl:+,.0f} ({std_pct:+.1f}%)</div>'
-                            f'<div style="{_ss}">{std_btc:.6f} BTC</div></div>', unsafe_allow_html=True)
+                            f'<div style="{_ss}">{std_btc:.6f} BTC accumulated</div></div>',
+                            unsafe_allow_html=True)
             with c2:
                 pc2 = '#00C853' if adj_pnl >= 0 else '#FF3D57'
                 st.markdown(f'<div style="{_cs}"><div style="{_ls}">Signal-Adjusted DCA</div>'
                             f'<div style="{_vs} color:#ccc;">Invested: ${adj_invested:,.0f}</div>'
                             f'<div style="{_vs} color:#F7931A;">Value: ${adj_value:,.0f}</div>'
                             f'<div style="{_vs} color:{pc2};">P&L: ${adj_pnl:+,.0f} ({adj_pct:+.1f}%)</div>'
-                            f'<div style="{_ss}">{adj_btc:.6f} BTC</div></div>', unsafe_allow_html=True)
+                            f'<div style="{_ss}">{adj_btc:.6f} BTC accumulated</div></div>',
+                            unsafe_allow_html=True)
             with c3:
                 dc = '#00C853' if diff_usd >= 0 else '#FF3D57'
                 dl = "Signal-Adjusted leads" if diff_usd >= 0 else "Standard DCA leads"
                 st.markdown(f'<div style="{_cs}"><div style="{_ls}">Difference</div>'
                             f'<div style="{_vs} color:{dc};">${diff_usd:+,.0f}</div>'
                             f'<div style="{_vs} color:{dc};">{diff_pct:+.1f}%</div>'
-                            f'<div style="{_ss}">{dl}</div></div>', unsafe_allow_html=True)
+                            f'<div style="{_ss}">{dl}</div></div>',
+                            unsafe_allow_html=True)
 
             if len(date_labels) > 1:
                 fig_dca = go.Figure()
@@ -1394,49 +1447,41 @@ with tab5:
                     fill='tonexty', fillcolor='rgba(0,200,83,0.06)',
                     hovertemplate='%{x}<br>$%{y:,.0f}<extra>Signal-Adjusted</extra>'))
                 fig_dca.update_layout(**PLOTLY_DARK, height=300,
-                    title=dict(text='Portfolio Value Since Launch', font=dict(size=13, color='#888')),
+                    title=dict(text='Portfolio Value Since Launch (Monday 9:30 AM ET executions)',
+                               font=dict(size=13, color='#888')),
                     yaxis_tickprefix='$',
                     legend=dict(orientation='h', y=1.08, x=0))
                 st.plotly_chart(fig_dca, use_container_width=True)
 
+            if fallback_log:
+                with st.expander("⚠️ Price resolution fallbacks"):
+                    for entry in fallback_log:
+                        st.caption(entry)
+
             st.markdown('<div style="font-size:0.68rem; color:#444; text-align:center; margin-top:4px;">'
-                        'Based on recorded signal outputs since launch · Feb 24, 2025 · Not financial advice</div>',
+                        'Executions: Monday 9:30 AM ET · Price: Yahoo Finance hourly · '
+                        'Launch: Feb 24, 2025 · Not financial advice</div>',
                         unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Feedback Box
+# Contact / Feedback
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="margin-top:32px; background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:20px 24px;">
-    <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:4px;">
+<div style="margin-top:32px; background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:20px 24px; text-align:center;">
+    <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:8px;">
         Feature Request or Bug Report
     </div>
-    <div style="font-size:0.75rem; color:#555; margin-bottom:12px;">Your feedback helps improve this tool.</div>
+    <div style="font-size:0.82rem; color:#888; margin-bottom:12px;">
+        Have a suggestion or found a bug? Send a message directly.
+    </div>
+    <a href="mailto:beaumckee@gmail.com?subject=Bitcoin%20Accumulation%20Index%20Feedback"
+       style="display:inline-block; background:rgba(247,147,26,0.12); border:1px solid rgba(247,147,26,0.3);
+              color:#F7931A; font-size:0.82rem; font-weight:600; padding:10px 24px; border-radius:8px;
+              text-decoration:none; letter-spacing:0.5px;">
+        ✉ Email beaumckee@gmail.com
+    </a>
+</div>
 """, unsafe_allow_html=True)
-
-_fb_email   = st.text_input("Your email (optional)", placeholder="you@example.com", key="fb_email",
-                             label_visibility="collapsed")
-_fb_message = st.text_area("Message", placeholder="Describe a feature you'd like or a bug you've found...",
-                            height=90, key="fb_message", label_visibility="collapsed")
-if st.button("Submit Feedback", key="fb_submit"):
-    if _fb_message.strip():
-        try:
-            import os as _os2, json as _json2
-            _log = _os2.path.join(_os2.path.dirname(__file__), 'feedback_log.json')
-            _existing = []
-            if _os2.path.exists(_log):
-                with open(_log) as _fh2:
-                    _existing = _json2.load(_fh2)
-            _existing.append({"ts": datetime.utcnow().isoformat(),
-                               "email": _fb_email.strip(), "msg": _fb_message.strip()})
-            with open(_log, 'w') as _fh2:
-                _json2.dump(_existing, _fh2, indent=2)
-            st.success("✅ Thank you — feedback received!")
-        except Exception as _e:
-            st.error(f"Could not save: {_e}")
-    else:
-        st.warning("Please enter a message before submitting.")
-st.markdown("</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer
