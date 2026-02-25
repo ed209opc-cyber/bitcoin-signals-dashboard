@@ -1853,15 +1853,18 @@ with _tg_col:
     st.markdown("""
     <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:22px 24px; height:100%;">
         <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#29B6F6; margin-bottom:8px;">📡 TELEGRAM ALERTS</div>
-        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Get instant signal updates</div>
-        <div style="font-size:0.82rem; color:#666; line-height:1.65; margin-bottom:18px;">
-            Send any message to the bot for a live signal snapshot, or subscribe for automatic alerts whenever the signal changes tier.
+        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Know when to act — before you miss it</div>
+        <div style="font-size:0.82rem; color:#888; line-height:1.65; margin-bottom:4px;">
+            Get an alert the moment the signal shifts — <strong style="color:#C8C8D8;">Accumulate, Caution, or Avoid</strong>.
+        </div>
+        <div style="font-size:0.75rem; color:#555; line-height:1.5; margin-bottom:18px;">
+            No noise. Just the signal. Message the bot anytime for a live snapshot.
         </div>
         <a href="https://t.me/BTC_Pulse_Bot" target="_blank"
            style="display:block; text-align:center; background:rgba(41,182,246,0.15);
                   border:1px solid rgba(41,182,246,0.4); color:#29B6F6; font-weight:700;
                   padding:10px 16px; border-radius:10px; text-decoration:none; font-size:0.88rem;">
-            Open @BTC_Pulse_Bot on Telegram
+            Subscribe on Telegram →
         </a>
     </div>
     """, unsafe_allow_html=True)
