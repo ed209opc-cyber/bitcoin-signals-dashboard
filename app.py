@@ -37,6 +37,22 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import threading as _threading
+
+# ── Start Telegram bot polling in background thread ──
+def _start_telegram_bot():
+    try:
+        import telegram_bot as _tb
+        if _tb.BOT_TOKEN:
+            _tb.run_polling()
+    except Exception as _e:
+        print(f"[Telegram] Bot thread error: {_e}")
+
+_tg_thread = _threading.Thread(target=_start_telegram_bot, daemon=True, name="telegram-bot")
+# Only start once — check if already running
+_tg_running = any(t.name == "telegram-bot" for t in _threading.enumerate())
+if not _tg_running:
+    _tg_thread.start()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Page Config
