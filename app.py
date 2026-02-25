@@ -173,24 +173,40 @@ footer { display: none !important; }
 .count-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; display: block; margin-top: 1px; }
 
 /* ── Indicator Cards ── */
-/* Force equal-height cards within each Streamlit column row */
-[data-testid="column"] > div:first-child {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+/* ── Indicator Card Grid (equal-height rows via CSS grid) ── */
+.ind-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: stretch;
 }
-[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
-    height: 100%;
+.ind-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: stretch;
+}
+.ind-row-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.ind-cell {
     display: flex;
     flex-direction: column;
 }
 .indicator-card {
     background: #12121F; border: 1px solid #1E1E2E; border-radius: 12px;
-    padding: 10px 12px; margin-bottom: 0;
+    padding: 10px 12px;
     transition: border-color 0.2s, box-shadow 0.2s; cursor: default;
     position: relative; overflow: hidden;
     display: flex; flex-direction: column;
     flex: 1;
+    height: 100%;
+    box-sizing: border-box;
 }
 .indicator-card:hover { border-color: #2A2A3E; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 .indicator-card::before {
@@ -218,8 +234,18 @@ footer { display: none !important; }
     background: rgba(255,255,255,0.03); border-radius: 6px;
     font-size: 0.72rem; color: #999; line-height: 1.45;
     border-left: 2px solid #2A2A3E;
-    flex: 1; /* pushes View Details button to bottom */
+    flex: 1;
 }
+.card-view-btn {
+    display: block; width: 100%; margin-top: 10px;
+    background: transparent; border: 1px solid #2A2A3E;
+    border-radius: 8px; padding: 8px 0;
+    color: #888; font-size: 0.78rem; font-weight: 600;
+    text-align: center; cursor: pointer; text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+    font-family: inherit;
+}
+.card-view-btn:hover { border-color: #F7931A; color: #F7931A; }
 .zone-thresholds { display: flex; gap: 8px; margin-top: 4px; font-size: 0.65rem; flex-wrap: wrap; }
 .zone-buy  { color: #00C853; }
 .zone-sell { color: #FF3D57; }
@@ -754,17 +780,25 @@ if _signal_changed:
         try:
             from openai import OpenAI as _OAI
             _oai = _OAI()
+            _btcpulse_system = (
+                "You are BTCpulse, a data-driven Bitcoin market analysis tool. "
+                "Write in a calm, analytical, trustworthy tone — like a knowledgeable friend who follows Bitcoin closely. "
+                "Describe what the data shows. Never tell anyone what to do. No investment advice, no hype, no doom."
+            )
             _chg_prompt = (
                 f"The BTCpulse overall signal just changed from '{_prev_verdict}' to '{verdict}'. "
-                f"Current score: {score:.0f}/100. Signal distribution: {buy_n} BUY, {caution_n} CAUTION, {sell_n} SELL out of {len(signals)} indicators. "
+                f"Score: {score:.0f}/100. Distribution: {buy_n} Value Zone, {caution_n} Neutral, {sell_n} Risk Zone across {len(signals)} indicators. "
                 f"BTC price: ${price:,.0f}. "
-                f"Write 2 concise sentences explaining what drove this change and what it means for DCA strategy. "
-                f"Be specific and analytical. No hype."
+                f"Write 2 concise sentences explaining what drove this change and what it signals about the current market cycle position. "
+                f"Be specific and data-driven. No hype. No buy/sell advice. General information only."
             )
             _chg_resp = _oai.chat.completions.create(
                 model="gpt-4.1-mini",
-                messages=[{"role": "user", "content": _chg_prompt}],
-                max_tokens=120, temperature=0.6
+                messages=[
+                    {"role": "system", "content": _btcpulse_system},
+                    {"role": "user",   "content": _chg_prompt},
+                ],
+                max_tokens=130, temperature=0.6
             )
             _signal_change_text = _chg_resp.choices[0].message.content.strip()
             _alert_cache['signal_change_text'] = _signal_change_text
@@ -797,16 +831,24 @@ if _anomalies:
         try:
             from openai import OpenAI as _OAI2
             _oai2 = _OAI2()
+            _btcpulse_system2 = (
+                "You are BTCpulse, a data-driven Bitcoin market analysis tool. "
+                "Write in a calm, analytical, trustworthy tone — like a knowledgeable friend who follows Bitcoin closely. "
+                "Describe what the data shows. Never tell anyone what to do. No investment advice, no hype, no doom."
+            )
             _anom_prompt = (
                 f"Notable Bitcoin indicator moves detected: {'; '.join(_anomalies)}. "
                 f"Current BTC price: ${price:,.0f}. Overall signal: {verdict}. "
-                f"Write 1-2 sentences of plain-English context explaining what this move means. "
-                f"Be specific. No hype. No prediction."
+                f"Write 1-2 plain-English sentences describing what these moves indicate about current market conditions. "
+                f"Be specific and data-driven. No hype. No predictions. General information only."
             )
             _anom_resp = _oai2.chat.completions.create(
                 model="gpt-4.1-mini",
-                messages=[{"role": "user", "content": _anom_prompt}],
-                max_tokens=100, temperature=0.6
+                messages=[
+                    {"role": "system", "content": _btcpulse_system2},
+                    {"role": "user",   "content": _anom_prompt},
+                ],
+                max_tokens=110, temperature=0.6
             )
             _anomaly_text = _anom_resp.choices[0].message.content.strip()
             _alert_cache['anomaly_text'] = _anomaly_text
@@ -1559,44 +1601,66 @@ with tab1:
     for cat, items in categories.items():
         icon = cat_icons.get(cat, "•")
         st.markdown(f'<div class="category-header">{icon} {cat}</div>', unsafe_allow_html=True)
-        cols = st.columns(3)
-        for i, s in enumerate(items):
-            badge_class = "badge-" + s["signal"].lower()
-            card_class  = "card-"  + s["signal"].lower()
-            tooltip_txt = TOOLTIPS.get(s["name"], s.get("description", ""))
-            commentary  = zone_commentary(s)
-            zone_html = (
-                '<div class="zone-thresholds">'
-                + '<span class="zone-buy">🟢 ' + s["buy_zone"]  + '</span>'
-                + '<span class="zone-sell">🔴 ' + s["sell_zone"] + '</span>'
-                + '</div>'
-            )
-            card_html = (
-                '<div class="indicator-card ' + card_class + '" style="position:relative; overflow:visible;">'
-                + '<div class="card-header">'
-                + '<div style="flex:1; min-width:0;">'
-                + '<div class="card-tooltip-wrap">'
-                + '<div class="card-name">' + s["name"] + ' <span style="font-size:0.6rem; color:#444; font-weight:400;">ℹ</span></div>'
-                + '<div class="card-tooltip-popup">'
-                + '<div class="ct-what">' + tooltip_txt + '</div>'
-                + '<div class="ct-divider"></div>'
-                + '<div class="ct-now">' + commentary + '</div>'
-                + '</div></div>'
-                + '<div class="card-category">' + s["category"] + '</div>'
-                + '</div>'
-                + '<span class="signal-badge ' + badge_class + '">' + s["emoji"] + ' ' + s["signal"] + '</span>'
-                + '</div>'
-                + '<div class="card-value" style="color:' + s["color"] + '">' + s["value_str"] + '</div>'
-                + '<div class="card-detail">' + s["detail"] + '</div>'
-                + zone_html
-                + '<div class="zone-commentary">' + commentary + '</div>'
-                + '</div>'
-            )
-            with cols[i % 3]:
-                st.markdown(card_html, unsafe_allow_html=True)
-                if st.button("View Details →", key="deepdive_" + s["name"], use_container_width=True):
-                    st.session_state.selected_indicator = s["name"]
-                    st.rerun()
+
+        # Render cards in rows of 3 as a single HTML block for true equal height
+        # We still need Streamlit buttons for interactivity, so we render the card
+        # content in HTML and place real buttons below in a matching 3-col grid.
+        for row_start in range(0, len(items), 3):
+            row_items = items[row_start:row_start + 3]
+            n = len(row_items)
+            row_class = "ind-row" if n == 3 else ("ind-row-2" if n == 2 else "ind-row-1")
+
+            # Build HTML for all cards in this row
+            cells_html = ""
+            for s in row_items:
+                badge_class = "badge-" + s["signal"].lower()
+                card_class  = "card-"  + s["signal"].lower()
+                tooltip_txt = TOOLTIPS.get(s["name"], s.get("description", ""))
+                commentary  = zone_commentary(s)
+                zone_html = (
+                    '<div class="zone-thresholds">'
+                    + '<span class="zone-buy">🟢 ' + s["buy_zone"]  + '</span>'
+                    + '<span class="zone-sell">🔴 ' + s["sell_zone"] + '</span>'
+                    + '</div>'
+                )
+                cells_html += (
+                    '<div class="ind-cell">'
+                    + '<div class="indicator-card ' + card_class + '" style="overflow:visible;">'
+                    + '<div class="card-header">'
+                    + '<div style="flex:1; min-width:0;">'
+                    + '<div class="card-tooltip-wrap">'
+                    + '<div class="card-name">' + s["name"] + ' <span style="font-size:0.6rem; color:#444; font-weight:400;">ℹ</span></div>'
+                    + '<div class="card-tooltip-popup">'
+                    + '<div class="ct-what">' + tooltip_txt + '</div>'
+                    + '<div class="ct-divider"></div>'
+                    + '<div class="ct-now">' + commentary + '</div>'
+                    + '</div></div>'
+                    + '<div class="card-category">' + s["category"] + '</div>'
+                    + '</div>'
+                    + '<span class="signal-badge ' + badge_class + '">' + s["emoji"] + ' ' + s["signal"] + '</span>'
+                    + '</div>'
+                    + '<div class="card-value" style="color:' + s["color"] + '">' + s["value_str"] + '</div>'
+                    + '<div class="card-detail">' + s["detail"] + '</div>'
+                    + zone_html
+                    + '<div class="zone-commentary">' + commentary + '</div>'
+                    + '</div>'
+                    + '</div>'
+                )
+
+            st.markdown(f'<div class="{row_class}">{cells_html}</div>', unsafe_allow_html=True)
+
+            # Render matching button row using st.columns so Streamlit handles click events
+            if n == 3:
+                btn_cols = st.columns(3)
+            elif n == 2:
+                btn_cols = list(st.columns([1, 1, 1]))[:2]
+            else:
+                btn_cols = [st.columns([1, 1, 1])[0]]
+            for j, s in enumerate(row_items):
+                with btn_cols[j]:
+                    if st.button("View Details →", key="deepdive_" + s["name"], use_container_width=True):
+                        st.session_state.selected_indicator = s["name"]
+                        st.rerun()
 
 # TAB 2: PRICE CHART (5-Year)
 # ═════════════════════════════════════════════════════════════════════════════

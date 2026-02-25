@@ -50,25 +50,34 @@ def generate_market_vibe(data: dict, signals: list, verdict: str) -> str:
         buy_names    = [s['name'] for s in signals if s['signal'] == 'BUY'][:3]
         caution_names= [s['name'] for s in signals if s['signal'] == 'CAUTION'][:2]
 
-        prompt = f"""You are a concise Bitcoin market data analyst writing a brief daily summary for a Bitcoin data dashboard.
+        system_msg = (
+            "You are BTCpulse, a data-driven Bitcoin market analysis tool. "
+            "You write in a calm, analytical, trustworthy tone — like a knowledgeable friend who follows Bitcoin closely. "
+            "You describe what the data shows, never what anyone should do. "
+            "You are not a financial adviser. No investment advice, no buy/sell recommendations, no hype, no doom."
+        )
+
+        prompt = f"""Write a 2-3 sentence daily market vibe summary (max 100 words) for the BTCpulse dashboard.
 
 Current data:
 - BTC Price: ${price:,.0f} USD (A${price_aud:,.0f} AUD)
-- 24h Change: {chg_24h:+.2f}%
-- 7d Change: {chg_7d:+.2f}%
+- 24h Change: {chg_24h:+.2f}% · 7d Change: {chg_7d:+.2f}%
 - Fear & Greed Index: {fg}/100 ({fg_label})
 - BTC Dominance: {dominance:.1f}%
-- Indicator Distribution: {buy_n} Value Zone, {caution_n} Neutral, {sell_n} Risk Zone out of {len(signals)} indicators
+- Indicator Distribution: {buy_n} Value Zone · {caution_n} Neutral · {sell_n} Risk Zone (of {len(signals)} total)
 - Overall Signal: {verdict}
 - Key Value Zone indicators: {', '.join(buy_names) if buy_names else 'None'}
 - Key Neutral indicators: {', '.join(caution_names) if caution_names else 'None'}
 
-Write 2-3 sentences (max 80 words total) describing what the current data indicates about Bitcoin's market cycle position. Use descriptive, factual language only — describe what the data shows, not what anyone should do. No investment advice, no buy/sell recommendations. No markdown, no bullet points. Just plain factual sentences. This is general information only."""
+Describe what the current data indicates about Bitcoin's market cycle position. Plain factual sentences only. No markdown, no bullet points. This is general information only."""
 
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=160,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user",   "content": prompt},
+            ],
+            max_tokens=180,
             temperature=0.6,
         )
         return response.choices[0].message.content.strip()
