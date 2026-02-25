@@ -129,16 +129,60 @@ def _load_cache():
     return {}
 
 
-def _build_signal_message():
-    cache = _load_cache()
-    verdict   = cache.get("last_verdict", "")
-    score     = cache.get("last_score", "")
-    price     = cache.get("last_price", "")
-    buy_n     = cache.get("last_buy", "")
-    caution_n = cache.get("last_caution", "")
-    sell_n    = cache.get("last_sell", "")
-    val_region = cache.get("last_val_region", "")
+def _fetch_live_price():
+    """Fetch live BTC price directly from CoinGecko — used when cache is stale."""
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/simple/price",
+            params={"ids": "bitcoin", "vs_currencies": "usd", "include_24hr_change": "true"},
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            data = r.json().get("bitcoin", {})
+            return data.get("usd"), data.get("usd_24h_change", 0)
+    except Exception as e:
+        print("[Telegram] Live price fetch error: " + str(e))
+    return None, None
 
+
+def _fetch_live_signals():
+    """Fetch fresh signal data directly from data_fetcher.
+    Returns (verdict, score, buy_n, caution_n, sell_n, price) or None on failure."""
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from data_fetcher import get_all_indicators, get_all_signals, compute_overall_verdict
+        data    = get_all_indicators()
+        signals = get_all_signals(data)
+        verdict, _, score, buy_n, caution_n, sell_n = compute_overall_verdict(signals)
+        price = data.get('price', 0)
+        return verdict, score, buy_n, caution_n, sell_n, price
+    except Exception as e:
+        print("[Telegram] Live signal fetch error: " + str(e))
+        return None
+
+
+def _build_signal_message():
+    # Try to get fully fresh live data first
+    live = _fetch_live_signals()
+    if live:
+        verdict, score, buy_n, caution_n, sell_n, price = live
+    else:
+        # Fall back to cache
+        cache = _load_cache()
+        verdict   = cache.get("last_verdict", "")
+        score     = cache.get("last_score", "")
+        price     = cache.get("last_price", "")
+        buy_n     = cache.get("last_buy", "")
+        caution_n = cache.get("last_caution", "")
+        sell_n    = cache.get("last_sell", "")
+        # Even on cache fallback, try to get a fresh price
+        live_price, _ = _fetch_live_price()
+        if live_price is not None:
+            price = live_price
+
+    val_region = ""
     emoji = SIGNAL_EMOJI.get(verdict, "⚪")
 
     lines = [
@@ -147,7 +191,7 @@ def _build_signal_message():
     ]
 
     if verdict and score != "":
-        lines.append(emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(score) + "/100</b>")
+        lines.append(emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(int(float(score))) + "/100</b>")
     elif verdict:
         lines.append(emoji + " <b>" + str(verdict) + "</b>")
     else:
@@ -179,7 +223,7 @@ def send_signal_change_alert(verdict, score, buy_n, caution_n, sell_n, price, su
     lines = [
         "🔔 <b>BTCpulse — Signal Changed</b>",
         "",
-        emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(score) + "/100</b>",
+        emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(int(float(score))) + "/100</b>",
         "🟢 " + str(buy_n) + " Buy  🟡 " + str(caution_n) + " Caution  🔴 " + str(sell_n) + " Sell",
         "💰 BTC: <b>$" + "{:,.0f}".format(float(price)) + "</b>",
     ]

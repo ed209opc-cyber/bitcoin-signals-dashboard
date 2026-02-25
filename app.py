@@ -766,7 +766,7 @@ if _anomalies:
 if _signal_changed:
     try:
         from telegram_bot import send_signal_change_alert as _tg_alert
-        _tg_alert(_prev_verdict, verdict, int(score), buy_n, caution_n, sell_n, price)
+        _tg_alert(verdict, int(score), buy_n, caution_n, sell_n, price)
     except Exception as _tg_err:
         print(f"[Telegram] Alert error: {_tg_err}")
 # ── Update cache with current values ──
