@@ -13,7 +13,10 @@ CACHE_FILE = os.path.join(os.path.dirname(__file__), '.daily_vibe_cache.json')
 
 def get_today_utc() -> str:
     """Return today's date as YYYY-MM-DD in UTC."""
-    return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    # Cache by 5-minute window so vibe refreshes with each data cycle
+    now = datetime.now(timezone.utc)
+    minute_block = (now.minute // 5) * 5
+    return now.strftime(f'%Y-%m-%d %H:{minute_block:02d}')
 
 
 def load_cached_vibe() -> dict | None:

@@ -489,7 +489,7 @@ def load_market_vibe(price, chg_24h, chg_7d, fg, fg_label, dominance, verdict, b
     """
     from daily_cache import get_or_generate_vibe
     mock_data = {
-        'price': price, 'price_aud': price * 1.58,
+        'price': price, 'price_aud': price * aud_rate,
         'chg_24h': chg_24h, 'chg_7d': chg_7d,
         'fear_greed': fg, 'fear_greed_label': fg_label,
         'btc_dominance': dominance,
@@ -718,7 +718,10 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────────────────────
 # Price Strip
 # ─────────────────────────────────────────────────────────────────────────────
-chg_col   = '#00C853' if chg_24h >= 0 else '#FF3D57'
+chg_col        = '#00C853' if chg_24h >= 0 else '#FF3D57'
+chg_24h_aud_val = data.get('chg_24h_aud', chg_24h)
+aud_chg_col     = '#00C853' if chg_24h_aud_val >= 0 else '#FF3D57'
+aud_chg_arrow   = '▲' if chg_24h_aud_val >= 0 else '▼'
 chg_arrow = '▲' if chg_24h >= 0 else '▼'
 mkt_cap   = data.get('market_cap', 0)
 vol_24h   = data.get('volume_24h', 0)
@@ -743,7 +746,7 @@ with p2:
     <div class="metric-card">
         <div class="metric-label">BTC / AUD</div>
         <div class="metric-value">A${price_aud:,.0f}</div>
-        <div class="metric-sub" style="color:{chg_col};">{chg_arrow} {abs(chg_24h):.2f}% (24h) · Rate: {aud_rate:.4f}</div>
+        <div class="metric-sub" style="color:{aud_chg_col};">{aud_chg_arrow} {abs(chg_24h_aud_val):.2f}% (24h) · Rate: {aud_rate:.4f}</div>
     </div>""", unsafe_allow_html=True)
 with p3:
     st.markdown(f"""

@@ -127,6 +127,31 @@ def get_btc_ohlcv_weekly(weeks=260):
     return pd.DataFrame()
 
 
+def get_btc_aud_changes():
+    """Fetch BTC/AUD 24h and 7d percentage changes independently."""
+    try:
+        from data_api import ApiClient
+        client = ApiClient()
+        r = client.call_api('YahooFinance/get_stock_chart', query={
+            'symbol': 'BTC-AUD', 'interval': '1d', 'range': '10d',
+        })
+        if r and 'chart' in r and r['chart'].get('result'):
+            meta = r['chart']['result'][0]['meta']
+            result = r['chart']['result'][0]
+            quotes = result['indicators']['quote'][0]
+            closes = [c for c in quotes.get('close', []) if c is not None]
+            if len(closes) >= 2:
+                price_aud_now  = meta.get('regularMarketPrice', closes[-1])
+                price_aud_prev = closes[-2] if len(closes) >= 2 else closes[-1]
+                chg_24h_aud    = ((price_aud_now - price_aud_prev) / price_aud_prev * 100) if price_aud_prev else 0
+                price_aud_7d   = closes[-8] if len(closes) >= 8 else closes[0]
+                chg_7d_aud     = ((price_aud_now - price_aud_7d) / price_aud_7d * 100) if price_aud_7d else 0
+                return price_aud_now, chg_24h_aud, chg_7d_aud
+    except Exception as e:
+        print(f"BTC-AUD fetch error: {e}")
+    return None, None, None
+
+
 def get_dxy():
     """Fetch US Dollar Index (DXY) current value and recent change.
     Returns (value, chg_pct, signal_str) — rising DXY = bearish for BTC.
@@ -291,7 +316,7 @@ def get_market_data():
                 'market_cap':   mkt_cap if mkt_cap else price * circulating,
                 'total_volume': volume,
                 'circulating':  circulating,
-                'ath':          0,
+                'ath':          0,  # Will be enriched by CoinGecko below
                 'chg_7d':       0,
                 'chg_30d':      0,
                 'chg_1y':       0,
@@ -522,7 +547,7 @@ def get_all_indicators():
 
     print("Fetching BTC vs SPX...")
     btc_90d, spx_90d, spx_divergence = get_spx_comparison()
-
+    price_aud_live, chg_24h_aud, chg_7d_aud = get_btc_aud_changes()
     print("Fetching GLI from FRED...")
     import os
     fred_key = os.environ.get('FRED_API_KEY', '0d9475394ac10c664def19fabafb6ffa')
@@ -587,6 +612,9 @@ def get_all_indicators():
         # Raw price data
         'price':         price,
         'chg_24h':       chg_24h,
+        'chg_24h_aud':   chg_24h_aud if chg_24h_aud is not None else chg_24h,
+        'chg_7d_aud':    chg_7d_aud  if chg_7d_aud  is not None else 0,
+        'price_aud_live': price_aud_live,
         'market_cap':    market.get('market_cap', 0),
         'volume_24h':    market.get('total_volume', 0),
         'circulating':   market.get('circulating', 19_900_000),
@@ -812,7 +840,7 @@ def get_all_signals(data):
     dom = data['btc_dominance']
     add('BTC Dominance', 'Market Structure',
         dom, f"{dom:.1f}%",
-        classify_signal(dom, 40, 55, invert=True),
+        classify_signal(dom, 60, 45, invert=True),
         'BTC market share. High dominance = BTC leading, altcoin season not started = safer to accumulate BTC.',
         '> 60% (BTC Leading)', '< 45% (Altcoin Season, Cycle Top Near)',
         f"{'BTC strongly dominant' if dom > 60 else ('Moderate dominance' if dom > 50 else 'Low dominance — altcoin season')}")
