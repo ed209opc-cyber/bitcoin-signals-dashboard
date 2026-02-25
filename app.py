@@ -1104,47 +1104,99 @@ st.markdown(f"""
 if st.session_state.selected_indicator:
     from indicator_deepdives import DEEPDIVES
     _ind_name = st.session_state.selected_indicator
-    _ind = DEEPDIVES.get(_ind_name, {})
+    _ind_data = DEEPDIVES.get(_ind_name, {})
 
-    if st.button("← Back to Dashboard"):
+    # Find the live signal data for this indicator
+    _live_sig = None
+    try:
+        _all_sigs = load_signals()
+        _live_sig = next((s for s in _all_sigs if s["name"] == _ind_name), None)
+    except Exception:
+        pass
+
+    # Back button
+    if st.button("Back to Dashboard"):
         st.session_state.selected_indicator = None
-        st.experimental_rerun()
+        st.rerun()
 
-    st.markdown(f"""
-    <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:24px 28px; margin-bottom:20px;">
-        <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;">
-            INDICATOR DEEP-DIVE
-        </div>
-        <div style="font-size:1.6rem; font-weight:900; color:#E8E8F0;">{_ind_name}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Header with current value and signal
+    _sig_color = "#888"
+    _sig_label = "N/A"
+    _sig_emoji = ""
+    _val_str = "N/A"
+    _detail_str = ""
+    if _live_sig:
+        _sig_color = _live_sig.get("color", "#888")
+        _sig_label = _live_sig.get("signal", "N/A")
+        _sig_emoji = _live_sig.get("emoji", "")
+        _val_str = _live_sig.get("value_str", "N/A")
+        _detail_str = _live_sig.get("detail", "")
 
-    if _ind:
-        col_a, col_b = st.columns(2)
+    _badge_bg_map = {"BUY": "rgba(0,200,83,0.15)", "CAUTION": "rgba(255,193,7,0.15)", "SELL": "rgba(255,61,87,0.15)"}
+    _badge_bd_map = {"BUY": "rgba(0,200,83,0.4)", "CAUTION": "rgba(255,193,7,0.4)", "SELL": "rgba(255,61,87,0.4)"}
+    _badge_bg = _badge_bg_map.get(_sig_label, "rgba(100,100,100,0.15)")
+    _badge_bd = _badge_bd_map.get(_sig_label, "rgba(100,100,100,0.4)")
+
+    _header_html = (
+        "<div style='background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:24px 28px; margin-bottom:20px;'>"
+        "<div style='font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;'>INDICATOR DEEP-DIVE</div>"
+        "<div style='display:flex; align-items:center; gap:14px; flex-wrap:wrap;'>"
+        "<div style='font-size:1.8rem; font-weight:900; color:#E8E8F0;'>" + _ind_name + "</div>"
+        "<div style='font-family:JetBrains Mono,monospace; font-size:1.6rem; font-weight:700; color:" + _sig_color + ";'>" + _val_str + "</div>"
+        "<div style='padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:800; letter-spacing:1px; background:" + _badge_bg + "; border:1px solid " + _badge_bd + "; color:" + _sig_color + ";'>"
+        + _sig_emoji + " " + _sig_label
+        + "</div>"
+        "</div>"
+        + ("<div style='font-size:0.75rem; color:#666; margin-top:6px;'>" + _detail_str + "</div>" if _detail_str else "")
+        + "</div>"
+    )
+    st.markdown(_header_html, unsafe_allow_html=True)
+
+    if _ind_data:
+        col_a, col_b = st.columns(2, gap="large")
         with col_a:
-            st.markdown("#### What is it?")
-            st.markdown(_ind.get("what", ""))
-            st.markdown("#### Why does it matter?")
-            st.markdown(_ind.get("why_matters", ""))
-            st.markdown("#### Historical Context")
-            st.markdown(_ind.get("historical_context", ""))
+            st.markdown(
+                "<div style='font-size:0.7rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;'>WHAT IT MEASURES</div>"
+                "<div style='font-size:0.88rem; color:#C8C8D8; line-height:1.7;'>" + _ind_data.get("what", "") + "</div>",
+                unsafe_allow_html=True
+            )
+            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='font-size:0.7rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;'>WHY IT MATTERS</div>"
+                "<div style='font-size:0.88rem; color:#C8C8D8; line-height:1.7;'>" + _ind_data.get("why_matters", "") + "</div>",
+                unsafe_allow_html=True
+            )
         with col_b:
-            st.markdown("#### Interpretation")
-            st.markdown(_ind.get("interpretation", ""))
-            st.markdown("#### How it is calculated")
-            st.markdown(_ind.get("how_calculated", ""))
+            st.markdown(
+                "<div style='font-size:0.7rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;'>HISTORICAL CONTEXT</div>"
+                "<div style='font-size:0.88rem; color:#C8C8D8; line-height:1.7;'>" + _ind_data.get("historical_context", "") + "</div>",
+                unsafe_allow_html=True
+            )
+            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='font-size:0.7rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;'>INTERPRETATION</div>"
+                "<div style='font-size:0.88rem; color:#C8C8D8; line-height:1.7;'>" + _ind_data.get("interpretation", "") + "</div>",
+                unsafe_allow_html=True
+            )
 
-        st.markdown("---")
-        st.markdown(f"""
-        <div style="background:rgba(0,200,83,0.07); border:1px solid rgba(0,200,83,0.25); border-radius:10px; padding:16px 20px; margin-top:8px;">
-            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#00C853; margin-bottom:6px;">ACCUMULATION CONTEXT</div>
-            <div style="font-size:0.88rem; color:#C8C8D8; line-height:1.65;">{_ind.get("accumulation_summary", "")}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='background:rgba(0,200,83,0.07); border:1px solid rgba(0,200,83,0.25); border-radius:10px; padding:16px 20px;'>"
+            "<div style='font-size:0.68rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#00C853; margin-bottom:6px;'>ACCUMULATION CONTEXT</div>"
+            "<div style='font-size:0.88rem; color:#C8C8D8; line-height:1.65;'>" + _ind_data.get("accumulation_summary", "") + "</div>"
+            "</div>",
+            unsafe_allow_html=True
+        )
     else:
         st.info("Full deep-dive content for this indicator is coming soon.")
 
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div style='font-size:0.72rem; color:#444; text-align:center;'>Not financial advice. Data refreshes every 5 minutes.</div>",
+        unsafe_allow_html=True
+    )
     st.stop()
+
 
 tab1, tab2, tab3, tab5, tab6 = st.tabs([
     "📊 Signal Tracker",
@@ -1281,7 +1333,39 @@ with tab1:
     {rows_html}
     </div>
     """
-    components.html(overview_html, height=len(signals) * 30 + 20, scrolling=False)
+    # Render overview rows as clickable Streamlit buttons styled as rows
+    st.markdown("""
+    <style>
+    .ov-row-btn > div > button {
+        background: #12121F !important;
+        border: 1px solid #1E1E2E !important;
+        border-radius: 6px !important;
+        color: #E8E8F0 !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
+        text-align: left !important;
+        padding: 7px 12px !important;
+        margin-bottom: 3px !important;
+        width: 100% !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    .ov-row-btn > div > button:hover {
+        border-color: #F7931A !important;
+        background: #1A1A2E !important;
+        color: #F7931A !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    for _ov_sig in signals:
+        _ov_emoji = {"BUY": "🟢", "CAUTION": "🟡", "SELL": "🔴"}.get(_ov_sig["signal"], "⚪")
+        _ov_label = _ov_emoji + "  " + _ov_sig["name"] + "   " + _ov_sig["signal"] + "   " + _ov_sig["value_str"]
+        st.markdown('<div class="ov-row-btn">', unsafe_allow_html=True)
+        if st.button(_ov_label, key="ov_" + _ov_sig["name"], use_container_width=True):
+            st.session_state.selected_indicator = _ov_sig["name"]
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
@@ -1344,7 +1428,7 @@ with tab1:
                 st.markdown(card_html, unsafe_allow_html=True)
                 if st.button("View Details →", key="deepdive_" + s["name"], use_container_width=True):
                     st.session_state.selected_indicator = s["name"]
-                    st.experimental_rerun()
+                    st.rerun()
 
 # TAB 2: PRICE CHART (5-Year)
 # ═════════════════════════════════════════════════════════════════════════════
