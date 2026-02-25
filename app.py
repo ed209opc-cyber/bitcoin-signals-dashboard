@@ -880,7 +880,17 @@ st.markdown(f"""
 # The Analytical Framework — Collapsible
 # ─────────────────────────────────────────────────────────────────────────────
 with st.expander("📐  The Analytical Framework — how this signal is built", expanded=False):
-    st.markdown(f"""
+    _framework_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ background: #0A0A14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 12px 4px; }}
+  a {{ color: #F7931A; }}
+</style>
+</head>
+<body>
 <div style="font-size:0.83rem; color:#C8C8D8; line-height:1.75; padding:4px 0;">
 
   <div style="margin-bottom:20px; padding:16px 20px;
@@ -981,7 +991,9 @@ with st.expander("📐  The Analytical Framework — how this signal is built", 
   </div>
 
 </div>
-""", unsafe_allow_html=True)
+</body>
+</html>"""
+    components.html(_framework_html, height=680, scrolling=False)
 
 # Price Strip
 # ─────────────────────────────────────────────────────────────────────────────
