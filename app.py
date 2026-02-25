@@ -631,9 +631,9 @@ def load_market_vibe(price, chg_24h, chg_7d, fg, fg_label, dominance, verdict, b
         'btc_dominance': dominance,
     }
     mock_signals = (
-        [{'signal': 'BUY'}] * buy_n +
-        [{'signal': 'CAUTION'}] * caution_n +
-        [{'signal': 'SELL'}] * sell_n
+        [{'signal': 'BUY', 'name': f'BUY_{i}'}   for i in range(buy_n)] +
+        [{'signal': 'CAUTION', 'name': f'CAU_{i}'} for i in range(caution_n)] +
+        [{'signal': 'SELL', 'name': f'SELL_{i}'}  for i in range(sell_n)]
     )
     vibe_text, is_fresh = get_or_generate_vibe(mock_data, mock_signals, verdict)
     return vibe_text, is_fresh
@@ -789,7 +789,7 @@ st.markdown(f"""
 <div class="dash-header">
     <div class="header-inner">
         <div class="header-brand">
-            <div class="dash-title">₿ BTCpulse<span style="font-size:0.55em; font-weight:500; color:#F7931A; opacity:0.6; margin-left:6px; vertical-align:middle;">.app</span></div>
+            <div class="dash-title" style="display:flex; align-items:center; gap:10px;"><img src="data:image/png;base64,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" style="width:36px; height:36px; object-fit:contain; vertical-align:middle;" alt="BTCpulse logo"> BTCpulse<span style="font-size:0.55em; font-weight:500; color:#F7931A; opacity:0.6; margin-left:6px; vertical-align:middle;">.app</span></div>
             <div class="dash-subtitle">Real-time Bitcoin accumulation signals &nbsp;·&nbsp; {datetime.utcnow().strftime('%b %d, %Y %H:%M UTC')}</div>
         </div>
         <div class="header-actions">
@@ -1198,12 +1198,11 @@ if st.session_state.selected_indicator:
     st.stop()
 
 
-tab1, tab2, tab3, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab5 = st.tabs([
     "📊 Signal Tracker",
     "📈 Price Chart",
     "⛏️ Halving Cycle",
     "📉 DCA Performance",
-    "🔐 Admin",
 ])
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1248,10 +1247,11 @@ with tab1:
                 </div>
             </div>"""
 
-    overview_html = f"""
+    overview_html = f"""<!DOCTYPE html>
+    <html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#12121F;">
     <style>
-    * {{ box-sizing:border-box; }}
-    body {{ background:#12121F; margin:0; padding:3px 6px 2px 6px; }}
+    * {{ box-sizing:border-box; margin:0; padding:0; }}
+    body {{ background:#12121F; padding:3px 6px 2px 6px; }}
 
     .so-row {{
         display:grid;
@@ -1332,12 +1332,10 @@ with tab1:
     <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:10px; padding:2px 4px;">
     {rows_html}
     </div>
+    </body></html>
     """
     # Render overview rows as clickable Streamlit buttons styled as rows
-    st.markdown(overview_html, unsafe_allow_html=True)
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    components.html(overview_html, height=600, scrolling=False)
 
     # ── Indicator Cards ──
     st.markdown("<div style='font-size:1.1rem; font-weight:700; color:#E8E8F0; margin:4px 0 2px 0;'>All Indicators at a Glance</div>", unsafe_allow_html=True)
@@ -1839,75 +1837,6 @@ with tab5:
                         'Launch: Feb 24, 2025 · Not financial advice</div>',
                         unsafe_allow_html=True)
 
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# TAB 6: ADMIN
-# ═════════════════════════════════════════════════════════════════════════════
-with tab6:
-    st.markdown("### 🔐 Admin Panel")
-    _admin_pw = st.text_input("Password", type="password", key="admin_pw")
-    _ADMIN_PW = os.environ.get("ADMIN_PASSWORD", "beau2025")
-    if _admin_pw == _ADMIN_PW:
-        _signups = _load_beta_signups()
-        st.success(f"✅ {len(_signups)} beta signups")
-        if _signups:
-            import pandas as pd
-            _df_signups = pd.DataFrame(_signups)
-            # ── Summary metrics ──
-            _ac1, _ac2, _ac3, _ac4 = st.columns(4)
-            _ac1.metric("Total Signups", len(_signups))
-            _ac2.metric("With Name", sum(1 for s in _signups if s.get('name','')))
-            _ac3.metric("With Source", sum(1 for s in _signups if s.get('source','')))
-            _ac4.metric("With Interest", sum(1 for s in _signups if s.get('interest','')))
-            # ── Source breakdown ──
-            if any(s.get('source') for s in _signups):
-                st.markdown("**Referral Sources**")
-                _src_counts = _df_signups['source'].value_counts().reset_index()
-                _src_counts.columns = ['Source', 'Count']
-                st.dataframe(_src_counts, use_container_width=True, hide_index=True)
-            # ── Interest breakdown ──
-            if any(s.get('interest') for s in _signups):
-                st.markdown("**Interests**")
-                _int_counts = _df_signups['interest'].value_counts().reset_index()
-                _int_counts.columns = ['Interest', 'Count']
-                st.dataframe(_int_counts, use_container_width=True, hide_index=True)
-            # ── Experience breakdown ──
-            if any(s.get('experience') for s in _signups):
-                st.markdown("**Experience Levels**")
-                _exp_counts = _df_signups['experience'].value_counts().reset_index()
-                _exp_counts.columns = ['Experience', 'Count']
-                st.dataframe(_exp_counts, use_container_width=True, hide_index=True)
-            # ── Signal at signup ──
-            if any(s.get('signal_at_signup') for s in _signups):
-                st.markdown("**Signal at Time of Signup**")
-                _sig_counts = _df_signups['signal_at_signup'].value_counts().reset_index()
-                _sig_counts.columns = ['Signal', 'Count']
-                st.dataframe(_sig_counts, use_container_width=True, hide_index=True)
-            # ── Full table ──
-            st.markdown("**All Signups (full data)**")
-            # Reorder columns for readability
-            _col_order = [c for c in ['timestamp','name','email','source','interest','experience','signal_at_signup'] if c in _df_signups.columns]
-            st.dataframe(_df_signups[_col_order], use_container_width=True)
-            _csv = _df_signups[_col_order].to_csv(index=False)
-            st.download_button("⬇️ Download CSV", _csv, "beta_signups.csv", "text/csv")
-        else:
-            st.info("No signups yet.")
-        st.markdown("---")
-        st.markdown("**Telegram Subscribers**")
-        if os.path.exists(TELEGRAM_SUBS_FILE):
-            try:
-                with open(TELEGRAM_SUBS_FILE, 'r') as _tf:
-                    _tg_subs = _json_beta.load(_tf)
-                st.success(f"✅ {len(_tg_subs)} Telegram subscribers")
-                for _sub in _tg_subs:
-                    st.caption(f"chat_id: {_sub.get('chat_id')} — joined {_sub.get('joined','?')}")
-            except Exception:
-                st.info("No Telegram subscribers yet.")
-        else:
-            st.info("No Telegram subscribers yet.")
-    elif _admin_pw:
-        st.error("Incorrect password.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
