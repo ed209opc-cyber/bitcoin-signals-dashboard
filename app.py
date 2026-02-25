@@ -58,6 +58,13 @@ _tg_running = any(t.name == "telegram-bot" for t in _threading.enumerate())
 if not _tg_running:
     _tg_thread.start()
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Session State
+# ─────────────────────────────────────────────────────────────────────────────
+if "selected_indicator" not in st.session_state:
+    st.session_state.selected_indicator = None
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Page Config
 # ─────────────────────────────────────────────────────────────────────────────
@@ -769,7 +776,7 @@ st.markdown(f"""
             <div class="dash-subtitle">Real-time Bitcoin accumulation signals &nbsp;·&nbsp; {datetime.utcnow().strftime('%b %d, %Y %H:%M UTC')}</div>
         </div>
         <div class="header-actions">
-            <a href="https://t.me/Delos_BTCSignals_bot" target="_blank" class="tg-btn">
+            <a href="https://t.me/BTC_Pulse_Bot" target="_blank" class="tg-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#29B6F6"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
                 <span>ALERTS</span>
             </a>
@@ -1074,11 +1081,58 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabs
 # ─────────────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+# ─────────────────────────────────────────────────────────────────────────────
+# Indicator Detail Page (renders instead of dashboard when card is clicked)
+# ─────────────────────────────────────────────────────────────────────────────
+if st.session_state.selected_indicator:
+    from indicator_deepdives import DEEPDIVES
+    _ind_name = st.session_state.selected_indicator
+    _ind = DEEPDIVES.get(_ind_name, {})
+
+    if st.button("← Back to Dashboard"):
+        st.session_state.selected_indicator = None
+        st.experimental_rerun()
+
+    st.markdown(f"""
+    <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:24px 28px; margin-bottom:20px;">
+        <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;">
+            INDICATOR DEEP-DIVE
+        </div>
+        <div style="font-size:1.6rem; font-weight:900; color:#E8E8F0;">{_ind_name}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if _ind:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("#### What is it?")
+            st.markdown(_ind.get("what", ""))
+            st.markdown("#### Why does it matter?")
+            st.markdown(_ind.get("why_matters", ""))
+            st.markdown("#### Historical Context")
+            st.markdown(_ind.get("historical_context", ""))
+        with col_b:
+            st.markdown("#### Interpretation")
+            st.markdown(_ind.get("interpretation", ""))
+            st.markdown("#### How it is calculated")
+            st.markdown(_ind.get("how_calculated", ""))
+
+        st.markdown("---")
+        st.markdown(f"""
+        <div style="background:rgba(0,200,83,0.07); border:1px solid rgba(0,200,83,0.25); border-radius:10px; padding:16px 20px; margin-top:8px;">
+            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#00C853; margin-bottom:6px;">ACCUMULATION CONTEXT</div>
+            <div style="font-size:0.88rem; color:#C8C8D8; line-height:1.65;">{_ind.get("accumulation_summary", "")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("Full deep-dive content for this indicator is coming soon.")
+
+    st.stop()
+
+tab1, tab2, tab3, tab5, tab6 = st.tabs([
     "📊 Signal Tracker",
     "📈 Price Chart",
     "⛏️ Halving Cycle",
-    "ℹ️ Indicator Guide",
     "📉 DCA Performance",
     "🔐 Admin",
 ])
@@ -1234,47 +1288,47 @@ with tab1:
     }
 
     for cat, items in categories.items():
-        icon = cat_icons.get(cat, '•')
+        icon = cat_icons.get(cat, "•")
         st.markdown(f'<div class="category-header">{icon} {cat}</div>', unsafe_allow_html=True)
-
         cols = st.columns(3)
         for i, s in enumerate(items):
-            badge_class   = f"badge-{s['signal'].lower()}"
-            card_class    = f"card-{s['signal'].lower()}"
-            tooltip_txt   = TOOLTIPS.get(s['name'], s.get('description', ''))
-            commentary    = zone_commentary(s)
-
-            zone_html = f"""
-            <div class="zone-thresholds">
-                <span class="zone-buy">🟢 {s['buy_zone']}</span>
-                <span class="zone-sell">🔴 {s['sell_zone']}</span>
-            </div>"""
-
+            badge_class = "badge-" + s["signal"].lower()
+            card_class  = "card-"  + s["signal"].lower()
+            tooltip_txt = TOOLTIPS.get(s["name"], s.get("description", ""))
+            commentary  = zone_commentary(s)
+            zone_html = (
+                '<div class="zone-thresholds">'
+                + '<span class="zone-buy">🟢 ' + s["buy_zone"]  + '</span>'
+                + '<span class="zone-sell">🔴 ' + s["sell_zone"] + '</span>'
+                + '</div>'
+            )
+            card_html = (
+                '<div class="indicator-card ' + card_class + '" style="position:relative; overflow:visible;">'
+                + '<div class="card-header">'
+                + '<div style="flex:1; min-width:0;">'
+                + '<div class="card-tooltip-wrap">'
+                + '<div class="card-name">' + s["name"] + ' <span style="font-size:0.6rem; color:#444; font-weight:400;">ℹ</span></div>'
+                + '<div class="card-tooltip-popup">'
+                + '<div class="ct-what">' + tooltip_txt + '</div>'
+                + '<div class="ct-divider"></div>'
+                + '<div class="ct-now">' + commentary + '</div>'
+                + '</div></div>'
+                + '<div class="card-category">' + s["category"] + '</div>'
+                + '</div>'
+                + '<span class="signal-badge ' + badge_class + '">' + s["emoji"] + ' ' + s["signal"] + '</span>'
+                + '</div>'
+                + '<div class="card-value" style="color:' + s["color"] + '">' + s["value_str"] + '</div>'
+                + '<div class="card-detail">' + s["detail"] + '</div>'
+                + zone_html
+                + '<div class="zone-commentary">' + commentary + '</div>'
+                + '</div>'
+            )
             with cols[i % 3]:
-                st.markdown(f"""
-                <div class="indicator-card {card_class}" style="position:relative; overflow:visible;">
-                    <div class="card-header">
-                        <div style="flex:1; min-width:0;">
-                            <div class="card-tooltip-wrap">
-                                <div class="card-name">{s['name']} <span style="font-size:0.6rem; color:#444; font-weight:400;">ℹ</span></div>
-                                <div class="card-tooltip-popup">
-                                    <div class="ct-what">{tooltip_txt}</div>
-                                    <div class="ct-divider"></div>
-                                    <div class="ct-now">{commentary}</div>
-                                </div>
-                            </div>
-                            <div class="card-category">{s['category']}</div>
-                        </div>
-                        <span class="signal-badge {badge_class}">{s['emoji']} {s['signal']}</span>
-                    </div>
-                    <div class="card-value" style="color:{s['color']};">{s['value_str']}</div>
-                    <div class="card-detail">{s['detail']}</div>
-                    {zone_html}
-                    <div class="zone-commentary">{commentary}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(card_html, unsafe_allow_html=True)
+                if st.button("View Details →", key="deepdive_" + s["name"], use_container_width=True):
+                    st.session_state.selected_indicator = s["name"]
+                    st.experimental_rerun()
 
-# ═════════════════════════════════════════════════════════════════════════════
 # TAB 2: PRICE CHART (5-Year)
 # ═════════════════════════════════════════════════════════════════════════════
 with tab2:
@@ -1504,461 +1558,6 @@ with tab3:
                           font_size=13, font_color='#F7931A', showarrow=False)],
     )
     st.plotly_chart(fig_supply, use_container_width=True)
-
-# ═════════════════════════════════════════════════════════════════════════════
-# ═════════════════════════════════════════════════════════════════════════════
-# TAB 4: INDICATOR DEEP-DIVE GUIDE
-# ═════════════════════════════════════════════════════════════════════════════
-with tab4:
-    st.markdown("""
-    <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
-        <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A; margin-bottom:6px;">
-            Indicator Guide
-        </div>
-        <div style="font-size:0.82rem; color:#888; line-height:1.6;">
-            BTCpulse tracks 19 indicators across 4 categories. Select any indicator below to see how it works,
-            what the current reading means, and its historical track record.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    _indicator_list = [
-        "Fear & Greed Index",
-        "MVRV Z-Score",
-        "NUPL (Net Unrealised Profit/Loss)",
-        "Puell Multiple",
-        "RHODL Ratio",
-        "Reserve Risk",
-        "Mayer Multiple",
-        "200-Week Moving Average",
-        "2-Year MA Multiplier",
-        "Ahr999 Index",
-        "RSI — 14-Day",
-        "RSI — Weekly",
-        "Pi Cycle Top",
-        "BTC Dominance",
-        "Altcoin Season Index",
-        "CBBI (Composite Bitcoin Bull/Bear Index)",
-        "Crypto Fear & Greed Trend",
-        "Realised Price",
-        "Hash Ribbons",
-    ]
-
-    _indicator_data = {
-        "Fear & Greed Index": {
-            "category": "Sentiment",
-            "weight": "Moderate",
-            "source": "alternative.me",
-            "buy_zone": "< 25 (Extreme Fear)",
-            "caution_zone": "25–55 (Fear to Neutral)",
-            "sell_zone": "> 75 (Greed / Extreme Greed)",
-            "what": (
-                "The Fear & Greed Index aggregates 5–6 data sources — volatility, market momentum, "
-                "social media sentiment, surveys, Bitcoin dominance, and search trends — into a single "
-                "0–100 score. 0 = maximum fear, 100 = maximum greed."
-            ),
-            "why": (
-                "Bitcoin markets are driven by emotion. When the crowd is in extreme fear, prices are "
-                "typically suppressed and represent better long-term value. When the crowd is greedy, "
-                "prices are often inflated. Warren Buffett's principle — 'be fearful when others are "
-                "greedy, and greedy when others are fearful' — applies directly here."
-            ),
-            "track_record": (
-                "Extreme Fear readings (< 20) have historically coincided with major cycle lows: "
-                "March 2020 (COVID crash), June 2022 (LUNA collapse), and November 2022 (FTX). "
-                "Extreme Greed readings (> 90) have preceded corrections in 2021 and 2024."
-            ),
-            "limitations": (
-                "Short-term sentiment can stay elevated or depressed for weeks. This indicator is "
-                "most powerful at extremes (< 20 or > 85) and less useful in the 30–70 range."
-            ),
-        },
-        "MVRV Z-Score": {
-            "category": "On-Chain",
-            "weight": "High",
-            "source": "Glassnode / CoinGecko proxy",
-            "buy_zone": "< 0 (Market Value below Realised Value)",
-            "caution_zone": "0–3 (Fair Value range)",
-            "sell_zone": "> 5 (Significant overvaluation)",
-            "what": (
-                "MVRV Z-Score compares Bitcoin's Market Value (current price × supply) to its "
-                "Realised Value (the price each coin last moved × supply). The Z-Score normalises "
-                "this ratio by its standard deviation to account for different cycle magnitudes."
-            ),
-            "why": (
-                "When market value far exceeds realised value, it means the average holder is sitting "
-                "on large unrealised gains — historically a signal that the market is overheated. "
-                "When market value falls below realised value (Z-Score < 0), the average holder is "
-                "underwater, which has marked every major cycle bottom."
-            ),
-            "track_record": (
-                "Every Bitcoin cycle bottom has occurred when MVRV Z-Score was negative or near zero: "
-                "December 2018, March 2020, and November 2022. Every cycle top has occurred with "
-                "Z-Score above 7. It is widely considered the most reliable on-chain cycle indicator."
-            ),
-            "limitations": (
-                "Requires accurate on-chain data. As Bitcoin matures, peak Z-Score values may compress "
-                "each cycle. The indicator is less useful for short-term timing."
-            ),
-        },
-        "Mayer Multiple": {
-            "category": "Price Model",
-            "weight": "High",
-            "source": "CoinGecko (200-day MA calculated)",
-            "buy_zone": "< 0.8 (Deep discount to 200-day MA)",
-            "caution_zone": "0.8–1.5 (Fair value range)",
-            "sell_zone": "> 2.4 (Historically overextended)",
-            "what": (
-                "The Mayer Multiple divides the current Bitcoin price by its 200-day moving average. "
-                "A reading of 1.0 means price equals the 200-day MA. Below 1.0 means price is below "
-                "the long-term trend; above 1.0 means it is extended above it."
-            ),
-            "why": (
-                "The 200-day MA is the most widely-watched long-term trend indicator in financial "
-                "markets. When Bitcoin trades significantly below it (< 0.8), it has historically "
-                "represented exceptional value. The creator Trace Mayer identified 2.4 as the "
-                "threshold above which buying becomes statistically unfavourable long-term."
-            ),
-            "track_record": (
-                "Every time the Mayer Multiple has been below 0.8, it has been an excellent long-term "
-                "entry point. This occurred in December 2018, March 2020, and late 2022. "
-                "Readings above 3.0 have preceded major corrections."
-            ),
-            "limitations": (
-                "The 200-day MA is a lagging indicator. In fast-moving markets, price can remain "
-                "below the MA for extended periods. Not useful for short-term trading."
-            ),
-        },
-        "200-Week Moving Average": {
-            "category": "Price Model",
-            "weight": "High",
-            "source": "CoinGecko (calculated)",
-            "buy_zone": "Below the 200W MA (< 0% above)",
-            "caution_zone": "0–100% above the 200W MA",
-            "sell_zone": "> 100% above the 200W MA",
-            "what": (
-                "The 200-Week Moving Average is the average closing price of Bitcoin over the past "
-                "200 weeks (~4 years). It moves slowly and represents the long-term cost basis of "
-                "the market. BTCpulse also tracks how far above or below the current price sits "
-                "relative to this average."
-            ),
-            "why": (
-                "Every single Bitcoin bear market bottom has touched or come close to the 200W MA. "
-                "It acts as the ultimate long-term support floor. When price is significantly above "
-                "the 200W MA (> 100%), it has historically been in late-cycle territory."
-            ),
-            "track_record": (
-                "The 200W MA was touched in December 2018 (~$3,200), March 2020 (~$5,000), "
-                "and June 2022 (~$22,000). Each touch was followed by a major bull run. "
-                "The indicator has never failed to provide support at a cycle bottom."
-            ),
-            "limitations": (
-                "The 200W MA rises over time as Bitcoin's price grows. It is a long-term structural "
-                "indicator and should not be used for short-term decisions."
-            ),
-        },
-        "Pi Cycle Top": {
-            "category": "Technical",
-            "weight": "High",
-            "source": "CoinGecko (calculated)",
-            "buy_zone": "Not triggered (MAs far apart)",
-            "caution_zone": "MAs converging (within 10%)",
-            "sell_zone": "111-day MA crosses above 2× 350-day MA",
-            "what": (
-                "The Pi Cycle Top indicator uses two moving averages: the 111-day MA and 2× the "
-                "350-day MA. When the 111-day MA crosses above 2× the 350-day MA, it has historically "
-                "signalled a cycle top within days. The ratio of 350/111 ≈ π (3.153) gives the "
-                "indicator its name."
-            ),
-            "why": (
-                "The crossing of these two specific moving averages has been observed to coincide "
-                "precisely with Bitcoin cycle tops. It is not a predictive model — it is an "
-                "empirical observation that has held across multiple cycles."
-            ),
-            "track_record": (
-                "The Pi Cycle Top correctly identified the tops of December 2017, April 2021, "
-                "and November 2021 within 3 days of the actual peak. It has not produced a false "
-                "signal to date, making it one of the most precise cycle-top indicators available."
-            ),
-            "limitations": (
-                "Only useful for identifying tops, not bottoms. It is a lagging confirmation "
-                "signal — by the time it triggers, the top has already occurred or is imminent. "
-                "It provides no guidance during accumulation phases."
-            ),
-        },
-        "NUPL (Net Unrealised Profit/Loss)": {
-            "category": "On-Chain",
-            "weight": "High",
-            "source": "Glassnode proxy",
-            "buy_zone": "< 25% (Capitulation / Hope phase)",
-            "caution_zone": "25–50% (Optimism / Belief phase)",
-            "sell_zone": "> 75% (Euphoria / Greed phase)",
-            "what": (
-                "NUPL measures the total unrealised profit or loss of all Bitcoin holders as a "
-                "percentage of market cap. It is calculated as (Market Cap − Realised Cap) / Market Cap. "
-                "Positive values mean the average holder is in profit; negative means the average "
-                "holder is at a loss."
-            ),
-            "why": (
-                "When most holders are deeply in profit (NUPL > 75%), the incentive to sell is high "
-                "and the market is vulnerable to a correction. When most holders are at a loss "
-                "(NUPL < 0), selling pressure is exhausted and the market is near a bottom."
-            ),
-            "track_record": (
-                "NUPL has reliably identified cycle phases. The Capitulation zone (< 0) was reached "
-                "in December 2018 and November 2022. The Euphoria zone (> 75%) was reached in "
-                "December 2017 and April 2021, both near cycle tops."
-            ),
-            "limitations": (
-                "Requires on-chain data. BTCpulse uses a proxy calculation. The thresholds may "
-                "shift as the market matures and long-term holders accumulate a larger share."
-            ),
-        },
-        "Puell Multiple": {
-            "category": "On-Chain",
-            "weight": "Moderate",
-            "source": "Proxy via mining revenue estimates",
-            "buy_zone": "< 0.5 (Miner capitulation)",
-            "caution_zone": "0.5–2.2 (Normal range)",
-            "sell_zone": "> 2.2 (Miners highly profitable — late cycle)",
-            "what": (
-                "The Puell Multiple divides the daily issuance value of Bitcoin (in USD) by the "
-                "365-day moving average of daily issuance value. It measures how profitable mining "
-                "is relative to its historical average."
-            ),
-            "why": (
-                "When miners are barely profitable (Puell < 0.5), weak miners capitulate and sell "
-                "their BTC to cover costs, creating selling pressure. Once they exit, selling "
-                "pressure drops and price tends to recover. When miners are extremely profitable "
-                "(Puell > 2.2), they are likely near a cycle top."
-            ),
-            "track_record": (
-                "Puell Multiple below 0.5 has coincided with cycle bottoms in 2018 and 2022. "
-                "Readings above 4.0 have coincided with cycle tops. Post-halving periods naturally "
-                "compress the multiple as block rewards halve."
-            ),
-            "limitations": (
-                "Halvings significantly affect this indicator. The thresholds may need recalibration "
-                "after each halving event as the baseline issuance changes."
-            ),
-        },
-        "BTC Dominance": {
-            "category": "Market Structure",
-            "weight": "Moderate",
-            "source": "CoinGecko",
-            "buy_zone": "> 60% (BTC dominates — early/mid cycle)",
-            "caution_zone": "50–60% (Transitional)",
-            "sell_zone": "< 45% (Altcoin season — late cycle)",
-            "what": (
-                "BTC Dominance measures Bitcoin's market cap as a percentage of the total "
-                "cryptocurrency market cap. When dominance is high, Bitcoin is capturing most "
-                "of the capital flowing into crypto. When dominance falls, capital is rotating "
-                "into altcoins."
-            ),
-            "why": (
-                "Historically, Bitcoin dominance is highest early in a bull cycle (when BTC leads) "
-                "and lowest at the end of a cycle (when speculative altcoins peak). Falling dominance "
-                "often signals a late-cycle, higher-risk environment."
-            ),
-            "track_record": (
-                "BTC dominance was above 65% at the start of the 2020–2021 bull run. It fell to "
-                "below 40% near the November 2021 top as altcoins surged. The pattern repeated "
-                "in 2024–2025."
-            ),
-            "limitations": (
-                "The total crypto market cap includes many low-quality assets. Dominance can be "
-                "influenced by new token launches rather than genuine capital rotation."
-            ),
-        },
-        "CBBI (Composite Bitcoin Bull/Bear Index)": {
-            "category": "Market Structure",
-            "weight": "High",
-            "source": "colintalkscrypto.com proxy",
-            "buy_zone": "< 30 (Early cycle / accumulation)",
-            "caution_zone": "30–65 (Mid-cycle)",
-            "sell_zone": "> 90 (Near cycle top)",
-            "what": (
-                "The CBBI is a composite index that combines 9 on-chain and technical indicators "
-                "into a single 0–100 confidence score. It measures the probability that Bitcoin "
-                "is near a cycle top. A score of 100 means all 9 indicators are simultaneously "
-                "at historical top levels."
-            ),
-            "why": (
-                "No single indicator is perfect. The CBBI's strength is that it requires multiple "
-                "independent indicators to agree before signalling a top. This reduces false positives "
-                "and provides a more robust cycle-phase assessment."
-            ),
-            "track_record": (
-                "The CBBI reached above 95 in December 2017 and April/November 2021, both near "
-                "cycle tops. It was below 20 during the 2018 and 2022 bear market bottoms."
-            ),
-            "limitations": (
-                "The CBBI is a composite — its quality depends on the quality of its component "
-                "indicators. BTCpulse uses a proxy calculation that approximates the official index."
-            ),
-        },
-    }
-
-    # Default indicators for those not in the deep-dive dict
-    _default_info = {
-        "RHODL Ratio": {
-            "category": "On-Chain", "weight": "Moderate",
-            "what": "Compares the realised value of coins aged 1 week vs 1–2 years. High ratio = long-term holders dominating = accumulation phase.",
-            "buy_zone": "< 5,000", "caution_zone": "5,000–50,000", "sell_zone": "> 50,000",
-        },
-        "Reserve Risk": {
-            "category": "On-Chain", "weight": "Moderate",
-            "what": "Measures the risk/reward of investing relative to HODLer conviction. Low reserve risk = high conviction holders, low price = buy signal.",
-            "buy_zone": "< 0.0012", "caution_zone": "0.0012–0.005", "sell_zone": "> 0.005",
-        },
-        "2-Year MA Multiplier": {
-            "category": "Price Model", "weight": "Moderate",
-            "what": "Compares price to 2-year MA and 5× the 2-year MA. Below the 2yr MA = accumulation zone. Above 5× = sell zone.",
-            "buy_zone": "Below 2yr MA (< 1.0×)", "caution_zone": "1–3.5×", "sell_zone": "> 3.5×",
-        },
-        "Ahr999 Index": {
-            "category": "Price Model", "weight": "Moderate",
-            "what": "Combines Bitcoin's price appreciation rate with its deviation from a geometric growth model. Designed specifically to guide DCA decisions.",
-            "buy_zone": "< 0.45 (DCA zone)", "caution_zone": "0.45–1.2", "sell_zone": "> 4.0",
-        },
-        "RSI — 14-Day": {
-            "category": "Technical", "weight": "Low-Moderate",
-            "what": "Relative Strength Index on the daily chart. Measures momentum — how fast price is moving relative to recent history.",
-            "buy_zone": "< 30 (Oversold)", "caution_zone": "30–70 (Neutral)", "sell_zone": "> 70 (Overbought)",
-        },
-        "RSI — Weekly": {
-            "category": "Technical", "weight": "Moderate",
-            "what": "RSI on the weekly chart. Weekly oversold readings are rare and historically significant — they have coincided with major cycle lows.",
-            "buy_zone": "< 35 (Weekly oversold)", "caution_zone": "35–65", "sell_zone": "> 80",
-        },
-        "Altcoin Season Index": {
-            "category": "Market Structure", "weight": "Moderate",
-            "what": "Measures whether altcoins or Bitcoin are outperforming. High index = altcoin season = late cycle risk.",
-            "buy_zone": "< 25 (Bitcoin season)", "caution_zone": "25–75", "sell_zone": "> 75 (Altcoin season)",
-        },
-        "Crypto Fear & Greed Trend": {
-            "category": "Sentiment", "weight": "Moderate",
-            "what": "Tracks the 30-day trend of the Fear & Greed Index. A sustained recovery from Extreme Fear is a stronger signal than a single day reading.",
-            "buy_zone": "Rising from Extreme Fear", "caution_zone": "Neutral trend", "sell_zone": "Sustained Extreme Greed",
-        },
-        "Realised Price": {
-            "category": "On-Chain", "weight": "High",
-            "what": "The average price at which every Bitcoin last moved on-chain. When market price falls below realised price, the average holder is at a loss — historically a cycle bottom signal.",
-            "buy_zone": "Price below Realised Price", "caution_zone": "Price near Realised Price", "sell_zone": "Price far above Realised Price",
-        },
-        "Hash Ribbons": {
-            "category": "On-Chain", "weight": "Moderate",
-            "what": "Tracks the 30-day and 60-day moving averages of Bitcoin hash rate. When the 30-day crosses above the 60-day after a period of miner capitulation, it signals a buy.",
-            "buy_zone": "30d MA crosses above 60d MA (post-capitulation)", "caution_zone": "MAs converging", "sell_zone": "Not applicable (buy-only signal)",
-        },
-    }
-
-    _sel_col1, _sel_col2 = st.columns([1, 3])
-    with _sel_col1:
-        st.markdown('<div style="font-size:0.72rem; color:#888; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">Select Indicator</div>', unsafe_allow_html=True)
-        _selected = st.selectbox(
-            "Select Indicator",
-            _indicator_list,
-            label_visibility="collapsed",
-            key="indicator_deepdive_select"
-        )
-
-    # Get data for selected indicator
-    _info = _indicator_data.get(_selected) or _default_info.get(_selected, {})
-    _cat  = _info.get("category", "—")
-    _wt   = _info.get("weight", "—")
-    _src  = _info.get("source", "—")
-    _what = _info.get("what", "")
-    _why  = _info.get("why", "")
-    _tr   = _info.get("track_record", "")
-    _lim  = _info.get("limitations", "")
-    _buy  = _info.get("buy_zone", "—")
-    _cau  = _info.get("caution_zone", "—")
-    _sell = _info.get("sell_zone", "—")
-
-    _cat_color = {
-        "On-Chain": "#7C4DFF", "Sentiment": "#00BCD4", "Price Model": "#F7931A",
-        "Technical": "#00C853", "Market Structure": "#FF6F00",
-    }.get(_cat, "#888")
-
-    st.markdown(f"""
-    <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:20px 24px; margin-top:16px;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-            <div style="font-size:1.15rem; font-weight:800; color:#E8E8E8;">{_selected}</div>
-            <span style="background:{_cat_color}22; color:{_cat_color}; border:1px solid {_cat_color}44;
-                         font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                         padding:3px 10px; border-radius:20px;">{_cat}</span>
-            <span style="background:rgba(247,147,26,0.1); color:#F7931A; border:1px solid rgba(247,147,26,0.3);
-                         font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                         padding:3px 10px; border-radius:20px;">Weight: {_wt}</span>
-        </div>
-
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;">
-            <div style="background:#0A0A14; border:1px solid rgba(0,200,83,0.3); border-radius:10px; padding:12px 14px; text-align:center;">
-                <div style="font-size:0.62rem; color:#00C853; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">🟢 Buy Zone</div>
-                <div style="font-size:0.8rem; color:#C8C8D8; font-weight:600;">{_buy}</div>
-            </div>
-            <div style="background:#0A0A14; border:1px solid rgba(255,193,7,0.3); border-radius:10px; padding:12px 14px; text-align:center;">
-                <div style="font-size:0.62rem; color:#FFC107; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">🟡 Caution Zone</div>
-                <div style="font-size:0.8rem; color:#C8C8D8; font-weight:600;">{_cau}</div>
-            </div>
-            <div style="background:#0A0A14; border:1px solid rgba(255,61,87,0.3); border-radius:10px; padding:12px 14px; text-align:center;">
-                <div style="font-size:0.62rem; color:#FF3D57; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">🔴 Sell Zone</div>
-                <div style="font-size:0.8rem; color:#C8C8D8; font-weight:600;">{_sell}</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if _what:
-        st.markdown(f"""
-        <div style="background:#0D0D1A; border-left:3px solid {_cat_color}; border-radius:0 10px 10px 0;
-                    padding:14px 18px; margin-top:12px;">
-            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                        color:{_cat_color}; margin-bottom:6px;">What is it?</div>
-            <div style="font-size:0.83rem; color:#B8B8C8; line-height:1.65;">{_what}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if _why:
-        st.markdown(f"""
-        <div style="background:#0D0D1A; border-left:3px solid #F7931A; border-radius:0 10px 10px 0;
-                    padding:14px 18px; margin-top:10px;">
-            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                        color:#F7931A; margin-bottom:6px;">Why does it matter?</div>
-            <div style="font-size:0.83rem; color:#B8B8C8; line-height:1.65;">{_why}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if _tr:
-        st.markdown(f"""
-        <div style="background:#0D0D1A; border-left:3px solid #00C853; border-radius:0 10px 10px 0;
-                    padding:14px 18px; margin-top:10px;">
-            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                        color:#00C853; margin-bottom:6px;">Historical Track Record</div>
-            <div style="font-size:0.83rem; color:#B8B8C8; line-height:1.65;">{_tr}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if _lim:
-        st.markdown(f"""
-        <div style="background:#0D0D1A; border-left:3px solid #FF6F00; border-radius:0 10px 10px 0;
-                    padding:14px 18px; margin-top:10px;">
-            <div style="font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                        color:#FF6F00; margin-bottom:6px;">Limitations</div>
-            <div style="font-size:0.83rem; color:#B8B8C8; line-height:1.65;">{_lim}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div style="margin-top:24px; padding:14px 18px; background:#0A0A14; border:1px solid #1E1E2E;
-                border-radius:10px; font-size:0.72rem; color:#555; line-height:1.6;">
-        <strong style="color:#666;">Disclaimer:</strong> This dashboard is for educational and informational
-        purposes only. It does not constitute financial advice. Bitcoin is a highly volatile asset.
-        Always do your own research and consult a qualified financial adviser before making investment
-        decisions. Past indicator performance does not guarantee future results.
-    </div>
-    """, unsafe_allow_html=True)
 
 # TAB 5: SIGNAL-ADJUSTED DCA PERFORMANCE
 # ═════════════════════════════════════════════════════════════════════════════
@@ -2244,60 +1843,63 @@ with tab6:
 # ─────────────────────────────────────────────────────────────────────────────
 # Join the Beta — Email Capture
 # ─────────────────────────────────────────────────────────────────────────────
-# Telegram hint message
-st.markdown("""
-<div style="margin-top:24px; margin-bottom:8px; text-align:center;">
-    <span style="font-size:0.78rem; color:#555;">
-        📡 <a href="https://t.me/Delos_BTCSignals_bot" target="_blank"
-             style="color:#29B6F6; text-decoration:none; font-weight:600;">Send any message to the Telegram bot</a>
-        for an instant market sentiment update.
-    </span>
-</div>
-""", unsafe_allow_html=True)
-_beta_col1, _beta_col2, _beta_col3 = st.columns([1, 2, 1])
-with _beta_col2:
+# ─────────────────────────────────────────────────────────────────────────────
+# Telegram & Beta — Side-by-Side
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
+_tg_col, _beta_col = st.columns(2, gap="medium")
+
+with _tg_col:
     st.markdown("""
-    <div style="background:linear-gradient(135deg,#0D0D1A,#12121F);
-         border:1px solid rgba(247,147,26,0.35); border-radius:14px;
-         padding:20px 24px; text-align:center; margin-bottom:12px;">
-        <div style="font-size:0.72rem; font-weight:700; letter-spacing:2px;
-                    text-transform:uppercase; color:#F7931A; margin-bottom:6px;">
-            🚀 Join the Beta
+    <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:22px 24px; height:100%;">
+        <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#29B6F6; margin-bottom:8px;">📡 TELEGRAM ALERTS</div>
+        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Get instant signal updates</div>
+        <div style="font-size:0.82rem; color:#666; line-height:1.65; margin-bottom:18px;">
+            Send any message to the bot for a live signal snapshot, or subscribe for automatic alerts whenever the signal changes tier.
         </div>
-        <div style="font-size:1.0rem; font-weight:600; color:#E8E8E8; margin-bottom:4px;">
-            Be the first to know when the signal changes
-        </div>
-        <div style="font-size:0.78rem; color:#666;">
-            Early access to alerts, summaries, and new features.
+        <a href="https://t.me/BTC_Pulse_Bot" target="_blank"
+           style="display:block; text-align:center; background:rgba(41,182,246,0.15);
+                  border:1px solid rgba(41,182,246,0.4); color:#29B6F6; font-weight:700;
+                  padding:10px 16px; border-radius:10px; text-decoration:none; font-size:0.88rem;">
+            Open @BTC_Pulse_Bot on Telegram
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
+
+with _beta_col:
+    st.markdown("""
+    <div style="background:#12121F; border:1px solid rgba(247,147,26,0.3); border-radius:14px; padding:22px 24px;">
+        <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#F7931A; margin-bottom:8px;">🚀 JOIN THE BETA</div>
+        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Early access & new features</div>
+        <div style="font-size:0.82rem; color:#666; line-height:1.65; margin-bottom:14px;">
+            Get early access to email summaries, new indicators, and help shape the roadmap.
         </div>
     </div>
     """, unsafe_allow_html=True)
     with st.form("beta_signup_form", clear_on_submit=True):
         _beta_email = st.text_input("Email address", placeholder="your@email.com", label_visibility="collapsed")
-        _beta_submit = st.form_submit_button("🚀 Join the Beta", use_container_width=True)
+        _beta_submit = st.form_submit_button("Request Early Access", use_container_width=True)
         if _beta_submit:
-            if _beta_email and '@' in _beta_email and '.' in _beta_email:
+            if _beta_email and "@" in _beta_email and "." in _beta_email:
                 try:
                     import json as _jbs
-                    _ac_file = os.path.join(os.path.dirname(__file__), '.alert_cache.json')
-                    _sig_now = ''
+                    _ac_file = os.path.join(os.path.dirname(__file__), ".alert_cache.json")
+                    _sig_now = ""
                     if os.path.exists(_ac_file):
                         with open(_ac_file) as _acf:
                             _acd = _jbs.load(_acf)
-                        _sig_now = "%s (%s)" % (_acd.get('last_verdict', ''), _acd.get('last_score', ''))
+                        _sig_now = "%s (%s)" % (_acd.get("last_verdict", ""), _acd.get("last_score", ""))
                 except Exception:
-                    _sig_now = ''
+                    _sig_now = ""
                 _saved = _save_beta_signup(_beta_email, signal_at_signup=_sig_now)
                 if _saved:
-                    st.success("✅ You're on the list! We'll be in touch.")
+                    st.success("✅ You're on the list!")
                 else:
-                    st.info("You're already signed up — we'll be in touch!")
+                    st.info("Already signed up — we'll be in touch!")
             else:
                 st.warning("Please enter a valid email address.")
     st.markdown('<div style="font-size:0.68rem; color:#333; text-align:center; margin-top:4px;">No spam. Unsubscribe anytime.</div>', unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Contact / Feedback
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""

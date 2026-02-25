@@ -1,5 +1,5 @@
 """
-BTCpulse — Telegram Bot
+BTC_Pulse_Bot — Telegram Bot
 ==========================================
 Handles subscriber management (/subscribe, /unsubscribe, /signal)
 and sends signal change alerts to all subscribers.
@@ -160,7 +160,7 @@ def _build_signal_message():
             ts = datetime.utcnow().strftime("%d %b %Y %H:%M UTC")
             val_pct = ("  (%+.1f%% vs 200W MA)" % pct_200w) if val_region else ""
             lines = [
-                "📡 <b>BTCpulse — Live Signal</b>",
+                "📡 <b>BTC_Pulse_Bot — Live Signal</b>",
                 "",
                 "%s <b>Signal: %s</b>  ·  Score: %s/100" % (emoji, verdict, score),
                 "🟢 %s Buy  🟡 %s Caution  🔴 %s Sell" % (buy_n, caution_n, sell_n),
@@ -215,7 +215,7 @@ def handle_update(update):
             pass
         if added:
             send_message(chat_id,
-                f"✅ <b>Welcome to BTCpulse!</b>\n\n"
+                f"✅ <b>Welcome to BTC_Pulse_Bot!</b>\n\n"
                 f"You'll receive an alert whenever the overall signal changes tier — "
                 f"so you always know whether it's a time to accumulate or hold off."
                 f"{_signal_snippet}\n\n"
@@ -245,7 +245,7 @@ def handle_update(update):
 
     elif text == "/help":
         send_message(chat_id,
-            "🤖 <b>BTCpulse Bot</b>\n\n"
+            "🤖 <b>BTC_Pulse_Bot</b>\n\n"
             "Commands:\n"
             "/subscribe — Get signal change alerts\n"
             "/unsubscribe — Stop alerts\n"
@@ -301,7 +301,7 @@ if __name__ == "__main__":
             print(f"Subscribers: {len(load_subscribers())}")
             print("Sending test broadcast...")
             broadcast(
-                "🧪 <b>Test Alert — BTCpulse</b>\n\n"
+                "🧪 <b>Test Alert — BTC_Pulse_Bot</b>\n\n"
                 "This is a test notification from your dashboard bot.\n"
                 "If you received this, the bot is working correctly! ✅\n\n"
                 "<i>Not financial advice.</i>"
