@@ -128,25 +128,18 @@ def get_btc_ohlcv_weekly(weeks=260):
 
 
 def get_btc_aud_changes():
-    """Fetch BTC/AUD 24h and 7d percentage changes independently."""
+    """Fetch BTC/AUD 24h and 7d percentage changes independently via yfinance."""
     try:
-        from data_api import ApiClient
-        client = ApiClient()
-        r = client.call_api('YahooFinance/get_stock_chart', query={
-            'symbol': 'BTC-AUD', 'interval': '1d', 'range': '10d',
-        })
-        if r and 'chart' in r and r['chart'].get('result'):
-            meta = r['chart']['result'][0]['meta']
-            result = r['chart']['result'][0]
-            quotes = result['indicators']['quote'][0]
-            closes = [c for c in quotes.get('close', []) if c is not None]
-            if len(closes) >= 2:
-                price_aud_now  = meta.get('regularMarketPrice', closes[-1])
-                price_aud_prev = closes[-2] if len(closes) >= 2 else closes[-1]
-                chg_24h_aud    = ((price_aud_now - price_aud_prev) / price_aud_prev * 100) if price_aud_prev else 0
-                price_aud_7d   = closes[-8] if len(closes) >= 8 else closes[0]
-                chg_7d_aud     = ((price_aud_now - price_aud_7d) / price_aud_7d * 100) if price_aud_7d else 0
-                return price_aud_now, chg_24h_aud, chg_7d_aud
+        import yfinance as yf
+        hist = yf.Ticker('BTC-AUD').history(period='10d', interval='1d')
+        closes = hist['Close'].dropna().tolist()
+        if len(closes) >= 2:
+            price_aud_now  = closes[-1]
+            price_aud_prev = closes[-2]
+            chg_24h_aud    = (price_aud_now - price_aud_prev) / price_aud_prev * 100
+            price_aud_7d   = closes[-8] if len(closes) >= 8 else closes[0]
+            chg_7d_aud     = (price_aud_now - price_aud_7d) / price_aud_7d * 100
+            return price_aud_now, chg_24h_aud, chg_7d_aud
     except Exception as e:
         print(f"BTC-AUD fetch error: {e}")
     return None, None, None
