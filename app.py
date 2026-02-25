@@ -2020,15 +2020,24 @@ with _tg_col:
         <div style="font-size:0.82rem; color:#888; line-height:1.65; margin-bottom:4px;">
             Receive a data update the moment the signal zone changes — <strong style="color:#C8C8D8;">Value Zone, Neutral, or Risk Zone</strong>.
         </div>
-        <div style="font-size:0.75rem; color:#555; line-height:1.5; margin-bottom:18px;">
+        <div style="font-size:0.75rem; color:#555; line-height:1.5; margin-bottom:14px;">
             No noise. Just the data. Message the bot anytime for a live indicator snapshot.
         </div>
         <a href="https://t.me/BTCPulse_app_bot" target="_blank"
            style="display:block; text-align:center; background:rgba(41,182,246,0.15);
                   border:1px solid rgba(41,182,246,0.4); color:#29B6F6; font-weight:700;
-                  padding:10px 16px; border-radius:10px; text-decoration:none; font-size:0.88rem;">
+                  padding:10px 16px; border-radius:10px; text-decoration:none; font-size:0.88rem; margin-bottom:16px;">
             Subscribe on Telegram →
         </a>
+        <div style="text-align:center; margin-top:4px;">
+            <div style="font-size:0.7rem; color:#555; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;">Scan to open on mobile</div>
+            <a href="https://t.me/BTCPulse_app_bot" target="_blank">
+                <img src="app/static/telegram_qr.png"
+                     alt="Scan QR code to join BTCPulse Telegram bot"
+                     style="width:130px; height:130px; border-radius:10px; border:1px solid #1E2A3A;"
+                />
+            </a>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
