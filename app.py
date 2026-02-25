@@ -622,7 +622,38 @@ def load_data():
     data['price_aud']      = data['price'] * aud_rate
     data['market_cap_aud'] = data.get('market_cap', 0) * aud_rate
     return data, signals, verdict, v_color, score, buy_n, caution_n, sell_n
-
+@st.cache_data(ttl=60, show_spinner=False)
+def load_live_price():
+    """Fast 60-second cache: only fetches BTC price and AUD rate.
+    Used by the price strip fragment so it refreshes every minute
+    without re-running the full indicator pipeline."""
+    import requests as _req
+    price, chg_24h, price_aud, chg_24h_aud, aud_rate = 0, 0, 0, 0, 1.58
+    try:
+        r = _req.get(
+            "https://api.coingecko.com/api/v3/simple/price"
+            "?ids=bitcoin&vs_currencies=usd,aud"
+            "&include_24hr_change=true",
+            timeout=8, headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        if r.status_code == 200:
+            d = r.json().get('bitcoin', {})
+            price       = d.get('usd', 0)
+            chg_24h     = d.get('usd_24h_change', 0)
+            price_aud   = d.get('aud', 0)
+            aud_rate    = price_aud / price if price else 1.58
+            chg_24h_aud = d.get('aud_24h_change', chg_24h)
+    except Exception:
+        pass
+    if price_aud == 0 and price > 0:
+        try:
+            r2 = _req.get("https://api.frankfurter.app/latest?from=USD&to=AUD", timeout=6)
+            if r2.status_code == 200:
+                aud_rate  = r2.json().get('rates', {}).get('AUD', 1.58)
+                price_aud = price * aud_rate
+        except Exception:
+            price_aud = price * aud_rate
+    return price, chg_24h, price_aud, chg_24h_aud, aud_rate
 
 def load_market_vibe(price, chg_24h, chg_7d, fg, fg_label, dominance, verdict, buy_n, caution_n, sell_n, total):
     """
@@ -994,61 +1025,67 @@ with st.expander("📐  The Analytical Framework — how this signal is built", 
 </html>"""
     components.html(_framework_html, height=1050, scrolling=False)
 
-# Price Strip
+# Price Strip — refreshes every 60 seconds via st.fragment
 # ─────────────────────────────────────────────────────────────────────────────
-chg_col        = '#00C853' if chg_24h >= 0 else '#FF3D57'
-chg_24h_aud_val = data.get('chg_24h_aud', chg_24h)
-aud_chg_col     = '#00C853' if chg_24h_aud_val >= 0 else '#FF3D57'
-aud_chg_arrow   = '▲' if chg_24h_aud_val >= 0 else '▼'
-chg_arrow = '▲' if chg_24h >= 0 else '▼'
-mkt_cap   = data.get('market_cap', 0)
-vol_24h   = data.get('volume_24h', 0)
-dom       = data.get('btc_dominance', 55)
-
-def fmt_large(n):
-    if n >= 1e12: return f"${n/1e12:.2f}T"
-    if n >= 1e9:  return f"${n/1e9:.2f}B"
-    if n >= 1e6:  return f"${n/1e6:.2f}M"
-    return f"${n:,.0f}"
-
-p1, p2, p3, p4, p5 = st.columns(5)
-with p1:
-    st.markdown(f"""
+@st.fragment(run_every=60)
+def _price_strip():
+    _lp, _lchg, _laud, _laud_chg, _lrate = load_live_price()
+    _p    = _lp    if _lp    else price
+    _chg  = _lchg  if _lp    else chg_24h
+    _paud = _laud  if _laud  else price_aud
+    _achg = _laud_chg if _laud else data.get('chg_24h_aud', chg_24h)
+    _rate = _lrate if _lp    else aud_rate
+    _mkt  = data.get('market_cap', 0)
+    _vol  = data.get('volume_24h', 0)
+    _dom  = data.get('btc_dominance', 55)
+    _cc   = '#00C853' if _chg  >= 0 else '#FF3D57'
+    _ac   = '#00C853' if _achg >= 0 else '#FF3D57'
+    _ca   = '\u25b2' if _chg  >= 0 else '\u25bc'
+    _aa   = '\u25b2' if _achg >= 0 else '\u25bc'
+    def fmt_large(n):
+        if n >= 1e12: return f"${n/1e12:.2f}T"
+        if n >= 1e9:  return f"${n/1e9:.2f}B"
+        if n >= 1e6:  return f"${n/1e6:.2f}M"
+        return f"${n:,.0f}"
+    p1, p2, p3, p4, p5 = st.columns(5)
+    with p1:
+        st.markdown(f"""
     <div class="metric-card">
         <div class="metric-label">BTC / USD</div>
-        <div class="metric-value">${price:,.0f}</div>
-        <div class="metric-sub" style="color:{chg_col};">{chg_arrow} {abs(chg_24h):.2f}% (24h)</div>
+        <div class="metric-value">${_p:,.0f}</div>
+        <div class="metric-sub" style="color:{_cc};">{_ca} {abs(_chg):.2f}% (24h)</div>
     </div>""", unsafe_allow_html=True)
-with p2:
-    st.markdown(f"""
+    with p2:
+        st.markdown(f"""
     <div class="metric-card">
         <div class="metric-label">BTC / AUD</div>
-        <div class="metric-value">A${price_aud:,.0f}</div>
-        <div class="metric-sub" style="color:{aud_chg_col};">{aud_chg_arrow} {abs(chg_24h_aud_val):.2f}% (24h) · Rate: {aud_rate:.4f}</div>
+        <div class="metric-value">A${_paud:,.0f}</div>
+        <div class="metric-sub" style="color:{_ac};">{_aa} {abs(_achg):.2f}% (24h) · Rate: {_rate:.4f}</div>
     </div>""", unsafe_allow_html=True)
-with p3:
-    st.markdown(f"""
+    with p3:
+        st.markdown(f"""
     <div class="metric-card">
         <div class="metric-label">Market Cap</div>
-        <div class="metric-value">{fmt_large(mkt_cap)}</div>
+        <div class="metric-value">{fmt_large(_mkt)}</div>
         <div class="metric-sub">Total BTC Market</div>
     </div>""", unsafe_allow_html=True)
-with p4:
-    st.markdown(f"""
+    with p4:
+        st.markdown(f"""
     <div class="metric-card">
         <div class="metric-label">24h Volume</div>
-        <div class="metric-value">{fmt_large(vol_24h)}</div>
+        <div class="metric-value">{fmt_large(_vol)}</div>
         <div class="metric-sub">Trading Volume</div>
     </div>""", unsafe_allow_html=True)
-with p5:
-    st.markdown(f"""
+    with p5:
+        st.markdown(f"""
     <div class="metric-card">
         <div class="metric-label">BTC Dominance</div>
-        <div class="metric-value">{dom:.1f}%</div>
+        <div class="metric-value">{_dom:.1f}%</div>
         <div class="metric-sub">of Total Crypto Market</div>
     </div>""", unsafe_allow_html=True)
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+_price_strip()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 200W MA Valuation Banner
