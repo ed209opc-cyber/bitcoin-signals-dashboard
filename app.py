@@ -35,6 +35,12 @@ def _save_beta_signup(email, name='', source='', interest='', experience='', sig
     })
     with open(BETA_SIGNUPS_FILE, 'w') as _f:
         _json_beta.dump(signups, _f, indent=2)
+    # Also write to Google Sheets (durable storage)
+    try:
+        from sheets_storage import save_beta_signup as _sheets_beta
+        _sheets_beta(email, name, signal_at_signup)
+    except Exception as _se:
+        print('[Sheets] Beta signup write error: ' + str(_se))
     return True
 
 import plotly.graph_objects as go
@@ -43,20 +49,31 @@ import numpy as np
 from datetime import datetime
 import threading as _threading
 
-# ── Start Telegram bot polling in background thread ──
-def _start_telegram_bot():
-    try:
-        import telegram_bot as _tb
-        if _tb.BOT_TOKEN:
-            _tb.run_polling()
-    except Exception as _e:
-        print(f"[Telegram] Bot thread error: {_e}")
+# ── Start Telegram bot polling in background thread (once per process) ──
+@st.cache_resource
+def _start_telegram_bot_once():
+    """Start the Telegram bot polling loop in a background thread.
+    st.cache_resource ensures this runs exactly once per server process,
+    surviving Streamlit reruns."""
+    def _bot_loop():
+        while True:
+            try:
+                import telegram_bot as _tb
+                if _tb.BOT_TOKEN:
+                    print('[Telegram] Starting polling loop...')
+                    _tb.run_polling()
+                else:
+                    print('[Telegram] No BOT_TOKEN set - bot disabled.')
+                    break
+            except Exception as _e:
+                import time as _time
+                print('[Telegram] Bot crashed: ' + str(_e) + ' - restarting in 10s')
+                _time.sleep(10)
+    t = _threading.Thread(target=_bot_loop, daemon=True, name='telegram-bot')
+    t.start()
+    return t
 
-_tg_thread = _threading.Thread(target=_start_telegram_bot, daemon=True, name="telegram-bot")
-# Only start once — check if already running
-_tg_running = any(t.name == "telegram-bot" for t in _threading.enumerate())
-if not _tg_running:
-    _tg_thread.start()
+_start_telegram_bot_once()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
