@@ -19,7 +19,7 @@ def _load_beta_signups():
             pass
     return []
 
-def _save_beta_signup(email, name=''):
+def _save_beta_signup(email, name='', source='', interest='', experience='', signal_at_signup=''):
     signups = _load_beta_signups()
     # Deduplicate by email
     if any(s.get('email','').lower() == email.lower() for s in signups):
@@ -27,6 +27,10 @@ def _save_beta_signup(email, name=''):
     signups.append({
         'email': email.strip(),
         'name': name.strip(),
+        'source': source,
+        'interest': interest,
+        'experience': experience,
+        'signal_at_signup': signal_at_signup,
         'timestamp': _dt_beta.utcnow().strftime('%Y-%m-%d %H:%M UTC')
     })
     with open(BETA_SIGNUPS_FILE, 'w') as _f:
@@ -1710,8 +1714,42 @@ with tab6:
         if _signups:
             import pandas as pd
             _df_signups = pd.DataFrame(_signups)
-            st.dataframe(_df_signups, use_container_width=True)
-            _csv = _df_signups.to_csv(index=False)
+            # ── Summary metrics ──
+            _ac1, _ac2, _ac3, _ac4 = st.columns(4)
+            _ac1.metric("Total Signups", len(_signups))
+            _ac2.metric("With Name", sum(1 for s in _signups if s.get('name','')))
+            _ac3.metric("With Source", sum(1 for s in _signups if s.get('source','')))
+            _ac4.metric("With Interest", sum(1 for s in _signups if s.get('interest','')))
+            # ── Source breakdown ──
+            if any(s.get('source') for s in _signups):
+                st.markdown("**Referral Sources**")
+                _src_counts = _df_signups['source'].value_counts().reset_index()
+                _src_counts.columns = ['Source', 'Count']
+                st.dataframe(_src_counts, use_container_width=True, hide_index=True)
+            # ── Interest breakdown ──
+            if any(s.get('interest') for s in _signups):
+                st.markdown("**Interests**")
+                _int_counts = _df_signups['interest'].value_counts().reset_index()
+                _int_counts.columns = ['Interest', 'Count']
+                st.dataframe(_int_counts, use_container_width=True, hide_index=True)
+            # ── Experience breakdown ──
+            if any(s.get('experience') for s in _signups):
+                st.markdown("**Experience Levels**")
+                _exp_counts = _df_signups['experience'].value_counts().reset_index()
+                _exp_counts.columns = ['Experience', 'Count']
+                st.dataframe(_exp_counts, use_container_width=True, hide_index=True)
+            # ── Signal at signup ──
+            if any(s.get('signal_at_signup') for s in _signups):
+                st.markdown("**Signal at Time of Signup**")
+                _sig_counts = _df_signups['signal_at_signup'].value_counts().reset_index()
+                _sig_counts.columns = ['Signal', 'Count']
+                st.dataframe(_sig_counts, use_container_width=True, hide_index=True)
+            # ── Full table ──
+            st.markdown("**All Signups (full data)**")
+            # Reorder columns for readability
+            _col_order = [c for c in ['timestamp','name','email','source','interest','experience','signal_at_signup'] if c in _df_signups.columns]
+            st.dataframe(_df_signups[_col_order], use_container_width=True)
+            _csv = _df_signups[_col_order].to_csv(index=False)
             st.download_button("⬇️ Download CSV", _csv, "beta_signups.csv", "text/csv")
         else:
             st.info("No signups yet.")
@@ -1754,10 +1792,39 @@ with _beta_col2:
     with st.form("beta_signup_form", clear_on_submit=True):
         _beta_email = st.text_input("Email address", placeholder="you@example.com", label_visibility="collapsed")
         _beta_name  = st.text_input("First name (optional)", placeholder="First name", label_visibility="collapsed")
+        _beta_source = st.selectbox(
+            "How did you find us?",
+            ["— Select —", "Twitter / X", "Google Search", "Friend / Referral", "Reddit", "YouTube", "Podcast", "Other"],
+            label_visibility="collapsed"
+        )
+        _beta_interest = st.selectbox(
+            "What are you most interested in?",
+            ["— Select —", "DCA timing signals", "Price alerts & notifications", "On-chain analysis", "All of the above"],
+            label_visibility="collapsed"
+        )
+        _beta_experience = st.selectbox(
+            "Your Bitcoin experience level",
+            ["— Select —", "Beginner (< 1 year)", "Intermediate (1–3 years)", "Advanced (3+ years)"],
+            label_visibility="collapsed"
+        )
         _beta_submit = st.form_submit_button("🚀 Join the Beta", use_container_width=True)
         if _beta_submit:
             if _beta_email and '@' in _beta_email and '.' in _beta_email:
-                _saved = _save_beta_signup(_beta_email, _beta_name)
+                # Auto-capture current signal at time of signup
+                try:
+                    import json as _jbs
+                    _ac_file = os.path.join(os.path.dirname(__file__), '.alert_cache.json')
+                    _sig_now = ''
+                    if os.path.exists(_ac_file):
+                        with open(_ac_file) as _acf:
+                            _acd = _jbs.load(_acf)
+                        _sig_now = f"{_acd.get('last_verdict','')} ({_acd.get('last_score','')})"
+                except Exception:
+                    _sig_now = ''
+                _src_val  = _beta_source   if _beta_source   != "— Select —" else ""
+                _int_val  = _beta_interest if _beta_interest != "— Select —" else ""
+                _exp_val  = _beta_experience if _beta_experience != "— Select —" else ""
+                _saved = _save_beta_signup(_beta_email, _beta_name, _src_val, _int_val, _exp_val, _sig_now)
                 if _saved:
                     st.success("✅ You're on the list! We'll be in touch.")
                 else:
