@@ -257,15 +257,17 @@ def _build_signal_message():
         "",
     ]
 
-    if verdict and score != "":
-        lines.append(emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(int(float(score))) + "/100</b>")
-    elif verdict:
+    if verdict:
         lines.append(emoji + " <b>" + str(verdict) + "</b>")
     else:
         lines.append("⚪ Signal data loading — try again in a moment.")
 
     if buy_n != "" or caution_n != "" or sell_n != "":
-        lines.append("🟢 " + str(buy_n) + " Buy  🟡 " + str(caution_n) + " Caution  🔴 " + str(sell_n) + " Sell")
+        try:
+            _total = int(float(str(buy_n))) + int(float(str(caution_n))) + int(float(str(sell_n)))
+            lines.append("🟢 " + str(buy_n) + " Value  🟡 " + str(caution_n) + " Neutral  🔴 " + str(sell_n) + " Risk  <i>(" + str(_total) + " indicators)</i>")
+        except Exception:
+            lines.append("🟢 " + str(buy_n) + " Value  🟡 " + str(caution_n) + " Neutral  🔴 " + str(sell_n) + " Risk")
 
     if price != "":
         try:
@@ -287,8 +289,8 @@ def send_signal_change_alert(verdict, score, buy_n, caution_n, sell_n, price, su
     lines = [
         "🔔 <b>BTCpulse — Signal Changed</b>",
         "",
-        emoji + " <b>" + str(verdict) + "</b>  ·  Score: <b>" + str(int(float(score))) + "/100</b>",
-        "🟢 " + str(buy_n) + " Buy  🟡 " + str(caution_n) + " Caution  🔴 " + str(sell_n) + " Sell",
+        emoji + " <b>" + str(verdict) + "</b>",
+        "🟢 " + str(buy_n) + " Value  🟡 " + str(caution_n) + " Neutral  🔴 " + str(sell_n) + " Risk  <i>(" + str(int(buy_n)+int(caution_n)+int(sell_n)) + " indicators)</i>",
         "💰 BTC: <b>$" + "{:,.0f}".format(float(price)) + "</b>",
     ]
     if summary:

@@ -877,6 +877,63 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# How to Read This Dashboard — Collapsible
+# ─────────────────────────────────────────────────────────────────────────────
+with st.expander("ℹ️  How to read this dashboard", expanded=False):
+    st.markdown(f"""
+<div style="font-size:0.82rem; color:#C8C8D8; line-height:1.8; padding:4px 0;">
+
+<div style="margin-bottom:14px;">
+<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">The {total_sigs}-Indicator Consensus System</span><br>
+BTCpulse aggregates <strong>{total_sigs} on-chain, macro, and sentiment indicators</strong> into a single data signal.
+No single indicator is definitive — the zone label reflects the <em>weight of evidence</em> across all {total_sigs}.
+When the majority of indicators are in value territory simultaneously, historical data shows this has coincided with accumulation periods.
+When the majority are in risk territory, historical data shows this has coincided with cycle peaks.
+</div>
+
+<div style="margin-bottom:14px;">
+<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">What the Zones Mean</span><br>
+<table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+<tr style="border-bottom:1px solid #1E1E2E;">
+  <td style="padding:5px 8px; color:#00C853; font-weight:700;">🟢 High Historical Value Zone</td>
+  <td style="padding:5px 8px; color:#888;">60%+ of indicators in value territory. Historically associated with cycle lows.</td>
+</tr>
+<tr style="border-bottom:1px solid #1E1E2E;">
+  <td style="padding:5px 8px; color:#69F0AE; font-weight:700;">🟢 Value Accumulation Zone</td>
+  <td style="padding:5px 8px; color:#888;">40–60% of indicators in value territory. Historically associated with accumulation periods.</td>
+</tr>
+<tr style="border-bottom:1px solid #1E1E2E;">
+  <td style="padding:5px 8px; color:#FFC107; font-weight:700;">🟡 Neutral Data Zone</td>
+  <td style="padding:5px 8px; color:#888;">Indicators are mixed. Historical data does not strongly favour either direction.</td>
+</tr>
+<tr style="border-bottom:1px solid #1E1E2E;">
+  <td style="padding:5px 8px; color:#FF6B35; font-weight:700;">🟠 Elevated Risk Zone</td>
+  <td style="padding:5px 8px; color:#888;">40–60% of indicators in risk territory. Historically associated with reduced allocation periods.</td>
+</tr>
+<tr>
+  <td style="padding:5px 8px; color:#FF3D57; font-weight:700;">🔴 High Risk Zone</td>
+  <td style="padding:5px 8px; color:#888;">60%+ of indicators in risk territory. Historically associated with cycle peaks.</td>
+</tr>
+</table>
+</div>
+
+<div style="margin-bottom:14px;">
+<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">When the Data is Inconclusive</span><br>
+When fewer than 60% of indicators align in one direction, the data is considered mixed (Neutral Data Zone).
+Historically, mixed readings have not strongly favoured either direction — the data is telling you the picture is unclear.
+</div>
+
+<div style="padding:10px 14px; background:rgba(247,147,26,0.06); border-left:3px solid rgba(247,147,26,0.4); border-radius:0 6px 6px 0; font-size:0.76rem; color:#888;">
+<strong style="color:#aaa;">This is data aggregation, not financial advice.</strong>
+The indicators describe historical patterns — they do not predict future prices.
+BTCpulse does not hold an AFSL. Always perform your own due diligence.
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Price Strip
 # ─────────────────────────────────────────────────────────────────────────────
 chg_col        = '#00C853' if chg_24h >= 0 else '#FF3D57'
@@ -1859,12 +1916,12 @@ with _tg_col:
     st.markdown("""
     <div style="background:#12121F; border:1px solid #1E1E2E; border-radius:14px; padding:22px 24px; height:100%;">
         <div style="font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#29B6F6; margin-bottom:8px;">📡 TELEGRAM ALERTS</div>
-        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Know when to act — before you miss it</div>
+        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:8px;">Stay informed when the data shifts</div>
         <div style="font-size:0.82rem; color:#888; line-height:1.65; margin-bottom:4px;">
-            Get an alert the moment the signal shifts — <strong style="color:#C8C8D8;">Accumulate, Caution, or Avoid</strong>.
+            Receive a data update the moment the signal zone changes — <strong style="color:#C8C8D8;">Value Zone, Neutral, or Risk Zone</strong>.
         </div>
         <div style="font-size:0.75rem; color:#555; line-height:1.5; margin-bottom:18px;">
-            No noise. Just the signal. Message the bot anytime for a live snapshot.
+            No noise. Just the data. Message the bot anytime for a live indicator snapshot.
         </div>
         <a href="https://t.me/BTCPulse_app_bot" target="_blank"
            style="display:block; text-align:center; background:rgba(41,182,246,0.15);
@@ -1931,7 +1988,7 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer — ASIC-Compliant Disclaimer
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div style='
     margin-top: 40px;
     padding: 20px 24px;
@@ -1969,7 +2026,7 @@ st.markdown("""
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         Auto-refreshes every 5 minutes
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-        Overall Signal is a consensus of all 19 indicators
+        Overall Signal is a consensus of all {total_sigs} indicators
         <br>
         Built by <strong style='color:#555;'>Beau McKee</strong>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
