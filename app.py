@@ -862,78 +862,127 @@ st.markdown(f"""
     <div class="signal-counts">
         <div class="count-pill" style="background:rgba(0,200,83,0.08); border:1px solid rgba(0,200,83,0.18);">
             <span style="color:#00C853;">{buy_n}</span>
-            <span class="count-label" style="color:#00C853;">BUY</span>
+            <span class="count-label" style="color:#00C853;">VALUE</span>
         </div>
         <div class="count-pill" style="background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.18);">
             <span style="color:#FFC107;">{caution_n}</span>
-            <span class="count-label" style="color:#FFC107;">CAUTION</span>
+            <span class="count-label" style="color:#FFC107;">NEUTRAL</span>
         </div>
         <div class="count-pill" style="background:rgba(255,61,87,0.08); border:1px solid rgba(255,61,87,0.18);">
             <span style="color:#FF3D57;">{sell_n}</span>
-            <span class="count-label" style="color:#FF3D57;">SELL</span>
+            <span class="count-label" style="color:#FF3D57;">RISK</span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# How to Read This Dashboard — Collapsible
+# The Analytical Framework — Collapsible
 # ─────────────────────────────────────────────────────────────────────────────
-with st.expander("ℹ️  How to read this dashboard", expanded=False):
+with st.expander("📐  The Analytical Framework — how this signal is built", expanded=False):
     st.markdown(f"""
-<div style="font-size:0.82rem; color:#C8C8D8; line-height:1.8; padding:4px 0;">
+<div style="font-size:0.83rem; color:#C8C8D8; line-height:1.75; padding:4px 0;">
 
-<div style="margin-bottom:14px;">
-<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">The {total_sigs}-Indicator Consensus System</span><br>
-BTCpulse aggregates <strong>{total_sigs} on-chain, macro, and sentiment indicators</strong> into a single data signal.
-No single indicator is definitive — the zone label reflects the <em>weight of evidence</em> across all {total_sigs}.
-When the majority of indicators are in value territory simultaneously, historical data shows this has coincided with accumulation periods.
-When the majority are in risk territory, historical data shows this has coincided with cycle peaks.
-</div>
+  <div style="margin-bottom:20px; padding:16px 20px;
+              background:linear-gradient(135deg,rgba(247,147,26,0.07),rgba(247,147,26,0.03));
+              border:1px solid rgba(247,147,26,0.2); border-radius:10px;">
+    <div style="font-size:0.68rem; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+                color:#F7931A; margin-bottom:8px;">The BTCpulse Analytical Framework</div>
+    <div style="font-size:0.88rem; color:#E8E8F0; line-height:1.7; font-style:italic;">
+      "The signal is built on the convergence of {total_sigs} distinct data streams across four analytical lenses:
+      <strong style="color:#F7931A;">Liquidity</strong>,
+      <strong style="color:#F7931A;">Market Structure</strong>,
+      <strong style="color:#F7931A;">On-Chain Value</strong>, and
+      <strong style="color:#F7931A;">Sentiment</strong>.
+      By requiring confluence across these non-correlated fields, we eliminate the noise of price
+      and focus on the integrity of the trend."
+    </div>
+  </div>
 
-<div style="margin-bottom:14px;">
-<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">What the Zones Mean</span><br>
-<table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
-<tr style="border-bottom:1px solid #1E1E2E;">
-  <td style="padding:5px 8px; color:#00C853; font-weight:700;">🟢 High Historical Value Zone</td>
-  <td style="padding:5px 8px; color:#888;">60%+ of indicators in value territory. Historically associated with cycle lows.</td>
-</tr>
-<tr style="border-bottom:1px solid #1E1E2E;">
-  <td style="padding:5px 8px; color:#69F0AE; font-weight:700;">🟢 Value Accumulation Zone</td>
-  <td style="padding:5px 8px; color:#888;">40–60% of indicators in value territory. Historically associated with accumulation periods.</td>
-</tr>
-<tr style="border-bottom:1px solid #1E1E2E;">
-  <td style="padding:5px 8px; color:#FFC107; font-weight:700;">🟡 Neutral Data Zone</td>
-  <td style="padding:5px 8px; color:#888;">Indicators are mixed. Historical data does not strongly favour either direction.</td>
-</tr>
-<tr style="border-bottom:1px solid #1E1E2E;">
-  <td style="padding:5px 8px; color:#FF6B35; font-weight:700;">🟠 Elevated Risk Zone</td>
-  <td style="padding:5px 8px; color:#888;">40–60% of indicators in risk territory. Historically associated with reduced allocation periods.</td>
-</tr>
-<tr>
-  <td style="padding:5px 8px; color:#FF3D57; font-weight:700;">🔴 High Risk Zone</td>
-  <td style="padding:5px 8px; color:#888;">60%+ of indicators in risk territory. Historically associated with cycle peaks.</td>
-</tr>
-</table>
-</div>
+  <div style="font-size:0.68rem; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+              color:#F7931A; margin-bottom:10px;">The Four Analytical Lenses</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
 
-<div style="margin-bottom:14px;">
-<span style="font-size:0.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#F7931A;">When the Data is Inconclusive</span><br>
-When fewer than 60% of indicators align in one direction, the data is considered mixed (Neutral Data Zone).
-Historically, mixed readings have not strongly favoured either direction — the data is telling you the picture is unclear.
-</div>
+    <div style="padding:12px 14px; background:#0D0D1A; border:1px solid #1E1E2E; border-radius:8px;">
+      <div style="font-size:0.7rem; font-weight:700; color:#29B6F6; letter-spacing:1px;
+                  text-transform:uppercase; margin-bottom:6px;">💧 Liquidity</div>
+      <div style="font-size:0.75rem; color:#888; line-height:1.6;">
+        Tracks global capital availability and dollar strength.<br>
+        <span style="color:#555;">Global Liquidity Index · US Dollar Index (DXY)</span>
+      </div>
+    </div>
 
-<div style="padding:10px 14px; background:rgba(247,147,26,0.06); border-left:3px solid rgba(247,147,26,0.4); border-radius:0 6px 6px 0; font-size:0.76rem; color:#888;">
-<strong style="color:#aaa;">This is data aggregation, not financial advice.</strong>
-The indicators describe historical patterns — they do not predict future prices.
-BTCpulse does not hold an AFSL. Always perform your own due diligence.
-</div>
+    <div style="padding:12px 14px; background:#0D0D1A; border:1px solid #1E1E2E; border-radius:8px;">
+      <div style="font-size:0.7rem; font-weight:700; color:#AB47BC; letter-spacing:1px;
+                  text-transform:uppercase; margin-bottom:6px;">📊 Market Structure</div>
+      <div style="font-size:0.75rem; color:#888; line-height:1.6;">
+        Price momentum, cycle positioning, and relative strength.<br>
+        <span style="color:#555;">RSI (14D &amp; Weekly) · Pi Cycle Top · BTC Dominance · Altcoin Season · CBBI · BTC vs S&amp;P 500</span>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px; background:#0D0D1A; border:1px solid #1E1E2E; border-radius:8px;">
+      <div style="font-size:0.7rem; font-weight:700; color:#00C853; letter-spacing:1px;
+                  text-transform:uppercase; margin-bottom:6px;">⛓ On-Chain Value</div>
+      <div style="font-size:0.75rem; color:#888; line-height:1.6;">
+        Network-level data measuring holder behaviour and fair value.<br>
+        <span style="color:#555;">MVRV · NUPL · Puell Multiple · RHODL · Reserve Risk · Mayer Multiple · 200W MA · 2Y MA · Ahr999</span>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px; background:#0D0D1A; border:1px solid #1E1E2E; border-radius:8px;">
+      <div style="font-size:0.7rem; font-weight:700; color:#FFC107; letter-spacing:1px;
+                  text-transform:uppercase; margin-bottom:6px;">🧠 Sentiment</div>
+      <div style="font-size:0.75rem; color:#888; line-height:1.6;">
+        Crowd psychology and market emotion.<br>
+        <span style="color:#555;">Fear &amp; Greed Index</span>
+        <span style="color:#333;"> · additional lenses being added</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="font-size:0.68rem; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+              color:#F7931A; margin-bottom:10px;">Reading the Signal Zones</div>
+  <table style="width:100%; border-collapse:collapse; font-size:0.78rem; margin-bottom:18px;">
+    <tr style="border-bottom:1px solid #1A1A2E;">
+      <td style="padding:7px 10px; color:#00C853; font-weight:700; white-space:nowrap;">🟢 High Historical Value Zone</td>
+      <td style="padding:7px 10px; color:#777;">60%+ of indicators in value territory. Historically associated with cycle lows and major accumulation periods.</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A2E;">
+      <td style="padding:7px 10px; color:#69F0AE; font-weight:700; white-space:nowrap;">🟢 Value Accumulation Zone</td>
+      <td style="padding:7px 10px; color:#777;">40–60% of indicators in value territory. Historically associated with mid-cycle accumulation windows.</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A2E;">
+      <td style="padding:7px 10px; color:#FFC107; font-weight:700; white-space:nowrap;">🟡 Neutral Data Zone</td>
+      <td style="padding:7px 10px; color:#777;">Indicators are mixed. The data does not strongly favour either direction — historically a period of consolidation.</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A2E;">
+      <td style="padding:7px 10px; color:#FF6B35; font-weight:700; white-space:nowrap;">🟠 Elevated Risk Zone</td>
+      <td style="padding:7px 10px; color:#777;">40–60% of indicators in risk territory. Historically associated with late-cycle caution periods.</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px; color:#FF3D57; font-weight:700; white-space:nowrap;">🔴 High Risk Zone</td>
+      <td style="padding:7px 10px; color:#777;">60%+ of indicators in risk territory. Historically associated with cycle peaks and distribution phases.</td>
+    </tr>
+  </table>
+
+  <div style="font-size:0.76rem; color:#666; margin-bottom:16px; padding-left:4px;">
+    When fewer than 60% of indicators align in one direction, the data is considered mixed (Neutral Data Zone).
+    Historically, mixed readings have not strongly favoured either direction.
+  </div>
+
+  <div style="padding:10px 14px; background:rgba(247,147,26,0.05);
+              border-left:3px solid rgba(247,147,26,0.35); border-radius:0 6px 6px 0;
+              font-size:0.74rem; color:#666;">
+    <strong style="color:#999;">General information only.</strong>
+    The indicators describe historical patterns — they do not predict future prices.
+    BTCpulse does not hold an AFSL. Always perform your own due diligence.
+  </div>
 
 </div>
 """, unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Price Strip
 # ─────────────────────────────────────────────────────────────────────────────
 chg_col        = '#00C853' if chg_24h >= 0 else '#FF3D57'
