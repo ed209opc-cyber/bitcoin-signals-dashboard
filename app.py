@@ -793,7 +793,7 @@ st.markdown(f"""
             <div class="dash-subtitle">Real-time Bitcoin accumulation signals &nbsp;·&nbsp; {datetime.utcnow().strftime('%b %d, %Y %H:%M UTC')}</div>
         </div>
         <div class="header-actions">
-            <a href="https://t.me/BTC_Pulse_Bot" target="_blank" class="tg-btn">
+            <a href="https://t.me/BTCPulse_app_bot" target="_blank" class="tg-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#29B6F6"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
                 <span>ALERTS</span>
             </a>
@@ -1109,7 +1109,7 @@ if st.session_state.selected_indicator:
     # Find the live signal data for this indicator
     _live_sig = None
     try:
-        _all_sigs = load_signals()
+        _detail_data, _all_sigs, *_ = load_data()
         _live_sig = next((s for s in _all_sigs if s["name"] == _ind_name), None)
     except Exception:
         pass
@@ -1334,38 +1334,8 @@ with tab1:
     </div>
     """
     # Render overview rows as clickable Streamlit buttons styled as rows
-    st.markdown("""
-    <style>
-    .ov-row-btn > div > button {
-        background: #12121F !important;
-        border: 1px solid #1E1E2E !important;
-        border-radius: 6px !important;
-        color: #E8E8F0 !important;
-        font-size: 0.82rem !important;
-        font-weight: 500 !important;
-        text-align: left !important;
-        padding: 7px 12px !important;
-        margin-bottom: 3px !important;
-        width: 100% !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }
-    .ov-row-btn > div > button:hover {
-        border-color: #F7931A !important;
-        background: #1A1A2E !important;
-        color: #F7931A !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    for _ov_sig in signals:
-        _ov_emoji = {"BUY": "🟢", "CAUTION": "🟡", "SELL": "🔴"}.get(_ov_sig["signal"], "⚪")
-        _ov_label = _ov_emoji + "  " + _ov_sig["name"] + "   " + _ov_sig["signal"] + "   " + _ov_sig["value_str"]
-        st.markdown('<div class="ov-row-btn">', unsafe_allow_html=True)
-        if st.button(_ov_label, key="ov_" + _ov_sig["name"], use_container_width=True):
-            st.session_state.selected_indicator = _ov_sig["name"]
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(overview_html, unsafe_allow_html=True)
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
@@ -1961,7 +1931,7 @@ with _tg_col:
         <div style="font-size:0.75rem; color:#555; line-height:1.5; margin-bottom:18px;">
             No noise. Just the signal. Message the bot anytime for a live snapshot.
         </div>
-        <a href="https://t.me/BTC_Pulse_Bot" target="_blank"
+        <a href="https://t.me/BTCPulse_app_bot" target="_blank"
            style="display:block; text-align:center; background:rgba(41,182,246,0.15);
                   border:1px solid rgba(41,182,246,0.4); color:#29B6F6; font-weight:700;
                   padding:10px 16px; border-radius:10px; text-decoration:none; font-size:0.88rem;">
