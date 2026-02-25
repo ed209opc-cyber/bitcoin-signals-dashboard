@@ -179,11 +179,11 @@ def broadcast(text):
 # ─────────────────────────────────────────────────────────────────────────────
 
 SIGNAL_EMOJI = {
-    "STRONG BUY":       "🚀",
-    "ACCUMULATE":       "🟢",
-    "NEUTRAL — WATCH":  "🟡",
-    "CAUTION — HOLD":   "🟠",
-    "SELL / REDUCE":    "🔴",
+    "High Historical Value Zone":       "🚀",
+    "Value Accumulation Zone":       "🟢",
+    "Neutral Data Zone":  "🟡",
+    "Elevated Risk Zone":   "🟠",
+    "High Risk Zone":    "🔴",
 }
 
 

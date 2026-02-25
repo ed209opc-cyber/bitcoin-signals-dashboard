@@ -367,18 +367,18 @@ PLOTLY_DARK = dict(
 TOOLTIPS = {
     'Fear & Greed Index': (
         "Composite sentiment score (0–100) from volatility, momentum, social media, surveys & dominance. "
-        "Contrarian signal — extreme fear historically marks the best buying opportunities. "
+        "Contrarian signal — extreme fear has historically coincided with value accumulation zones. "
         "Weight: moderate (sentiment can persist)."
     ),
     'MVRV Z-Score': (
         "Market Value ÷ Realised Value, normalised as a Z-score. "
         "Realised Value = what every coin last moved on-chain was worth. "
-        "Below 0 = trading below cost basis of all holders = deep value. "
+        "Below 0 = trading below cost basis of all holders — historically a low-risk zone. "
         "Weight: high — one of the most reliable on-chain cycle indicators."
     ),
     'NUPL (Net Unrealized P&L)': (
         "% of market cap representing unrealised profit or loss. "
-        "< 0% = Capitulation. 25–50% = Hope/Fear. > 75% = Euphoria (sell). "
+        "< 0% = Capitulation. 25–50% = Hope/Optimism. > 75% = Euphoria (historically high-risk zone). "
         "Weight: high — directly measures holder psychology."
     ),
     'Puell Multiple': (
@@ -488,7 +488,7 @@ def zone_commentary(s):
 
     commentaries = {
         'Fear & Greed Index': {
-            'BUY':     f"At {val}, the market is in <b style='color:#00C853'>Extreme Fear</b> — historically one of the best times to accumulate. Most retail investors are selling or avoiding Bitcoin right now.",
+            'BUY':     f"At {val}, the market is in <b style='color:#00C853'>Extreme Fear</b> — historically associated with value accumulation zones. Most retail investors are selling or avoiding Bitcoin right now.",
             'CAUTION': f"Sentiment at {val} — neutral territory. Neither a strong buy nor sell signal; wait for a clearer extreme.",
             'SELL':    f"At {val}, the market is in <b style='color:#FF3D57'>Extreme Greed</b> — euphoria often precedes corrections. Exercise caution with new positions.",
         },
@@ -518,22 +518,22 @@ def zone_commentary(s):
             'SELL':    f"Reserve Risk at {val} — elevated. HODLers distributing into strength; historically a late-cycle warning.",
         },
         'Mayer Multiple': {
-            'BUY':     f"Mayer Multiple of {val} — price at a <b style='color:#00C853'>significant discount to the 200-day MA</b>. Every time this has been below 0.8, it has been an excellent long-term entry.",
+            'BUY':     f"Mayer Multiple of {val} — price at a <b style='color:#00C853'>significant discount to the 200-day MA</b>. Historically, readings below 0.8 have coincided with value accumulation zones.",
             'CAUTION': f"Mayer Multiple of {val} — price near or slightly above the 200-day MA. Fair value range.",
             'SELL':    f"Mayer Multiple of {val} — price significantly extended above the 200-day MA. Historically, readings above 2.4 have marked overheated conditions.",
         },
         '200-Week MA Heatmap': {
-            'BUY':     f"Price is <b style='color:#00C853'>at or below the 200-week MA</b> — every bear market bottom in Bitcoin's history has touched this level. Historically the best accumulation zone.",
+            'BUY':     f"Price is <b style='color:#00C853'>at or below the 200-week MA</b> — every bear market bottom in Bitcoin's history has touched this level. Historically associated with value accumulation zones.",
             'CAUTION': f"Price is {val} above the 200-week MA — in the normal bull market range. Not a top signal yet, but not the deepest value either.",
             'SELL':    f"Price is {val} above the 200-week MA — historically, being 100%+ above this level has coincided with cycle tops.",
         },
         '2-Year MA Multiplier': {
-            'BUY':     f"At {val}, price is <b style='color:#00C853'>below the 2-year moving average</b> — historically the best accumulation zone. Only happens during bear markets.",
+            'BUY':     f"At {val}, price is <b style='color:#00C853'>below the 2-year moving average</b> — historically associated with value accumulation zones. Only occurs during bear markets.",
             'CAUTION': f"At {val}, price is above the 2-year MA but not yet in the danger zone. Normal bull market territory.",
             'SELL':    f"At {val}, price is significantly above the 2-year MA. Approaching the historical sell zone (5×).",
         },
         'Ahr999 Index': {
-            'BUY':     f"Ahr999 at {val} — in the <b style='color:#00C853'>DCA zone</b>. The model suggests Bitcoin is undervalued relative to its growth trajectory and mining cost.",
+            'BUY':     f"Ahr999 at {val} — in the <b style='color:#00C853'>DCA zone</b>. The model indicates Bitcoin is below its growth trajectory and mining cost model.",
             'CAUTION': f"Ahr999 at {val} — buy zone but not the deepest discount. Reasonable entry for long-term holders.",
             'SELL':    f"Ahr999 at {val} — approaching or in the sell zone. Price is significantly above the growth model.",
         },
@@ -813,27 +813,27 @@ st.markdown(f"""
 # Overall Verdict Banner — PRIMARY SIGNAL (top of page)
 # ─────────────────────────────────────────────────────────────────────────────
 verdict_bg_map = {
-    'STRONG BUY':       'linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04))',
-    'ACCUMULATE':       'linear-gradient(135deg, rgba(105,240,174,0.10), rgba(105,240,174,0.03))',
-    'NEUTRAL — WATCH':  'linear-gradient(135deg, rgba(255,193,7,0.10), rgba(255,193,7,0.03))',
-    'CAUTION — HOLD':   'linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.04))',
-    'SELL / REDUCE':    'linear-gradient(135deg, rgba(255,61,87,0.12), rgba(255,61,87,0.04))',
+    'High Historical Value Zone':       'linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04))',
+    'Value Accumulation Zone':       'linear-gradient(135deg, rgba(105,240,174,0.10), rgba(105,240,174,0.03))',
+    'Neutral Data Zone':  'linear-gradient(135deg, rgba(255,193,7,0.10), rgba(255,193,7,0.03))',
+    'Elevated Risk Zone':   'linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.04))',
+    'High Risk Zone':    'linear-gradient(135deg, rgba(255,61,87,0.12), rgba(255,61,87,0.04))',
 }
 verdict_border_map = {
-    'STRONG BUY':       'rgba(0,200,83,0.3)',
-    'ACCUMULATE':       'rgba(105,240,174,0.25)',
-    'NEUTRAL — WATCH':  'rgba(255,193,7,0.3)',
-    'CAUTION — HOLD':   'rgba(255,107,53,0.3)',
-    'SELL / REDUCE':    'rgba(255,61,87,0.3)',
+    'High Historical Value Zone':       'rgba(0,200,83,0.3)',
+    'Value Accumulation Zone':       'rgba(105,240,174,0.25)',
+    'Neutral Data Zone':  'rgba(255,193,7,0.3)',
+    'Elevated Risk Zone':   'rgba(255,107,53,0.3)',
+    'High Risk Zone':    'rgba(255,61,87,0.3)',
 }
 verdict_desc_map = {
-    'STRONG BUY':       'Multiple indicators are deep in buy zones. Historically excellent accumulation conditions.',
-    'ACCUMULATE':       'Majority of indicators favour accumulation. A good time to dollar-cost average into Bitcoin.',
-    'NEUTRAL — WATCH':  'Mixed signals across indicators. Monitor closely before committing large positions.',
-    'CAUTION — HOLD':   'Several indicators are elevated. Hold existing positions; avoid aggressive buying.',
-    'SELL / REDUCE':    'Most indicators signal cycle top territory. Consider reducing exposure.',
+    'High Historical Value Zone':       'The majority of indicators are in historically low-risk territory. Data is consistent with past value accumulation zones.',
+    'Value Accumulation Zone':       'Most indicators are in value territory. Historical data shows this zone has been associated with accumulation activity.',
+    'Neutral Data Zone':  'Mixed signals across indicators. The data does not strongly favour either value or risk territory at this time.',
+    'Elevated Risk Zone':   'Several indicators are in elevated territory. Historical data shows this zone has been associated with reduced allocation periods.',
+    'High Risk Zone':    'The majority of indicators are in historically high-risk territory. Data is consistent with past cycle peak zones.',
 }
-vbg     = verdict_bg_map.get(verdict, verdict_bg_map['NEUTRAL — WATCH'])
+vbg     = verdict_bg_map.get(verdict, verdict_bg_map['Neutral Data Zone'])
 vborder = verdict_border_map.get(verdict, 'rgba(255,193,7,0.3)')
 vdesc   = verdict_desc_map.get(verdict, '')
 
@@ -1042,10 +1042,10 @@ st.markdown(f"""
 # Signal Change Alert Banner
 # ─────────────────────────────────────────────────────────────────────────────
 if _signal_changed and _signal_change_text:
-    _prev_color = {'STRONG BUY': '#00C853', 'ACCUMULATE': '#69F0AE', 'NEUTRAL — WATCH': '#FFC107',
-                   'CAUTION — HOLD': '#FF9800', 'SELL / REDUCE': '#FF3D57'}.get(_prev_verdict, '#888')
-    _new_color  = {'STRONG BUY': '#00C853', 'ACCUMULATE': '#69F0AE', 'NEUTRAL — WATCH': '#FFC107',
-                   'CAUTION — HOLD': '#FF9800', 'SELL / REDUCE': '#FF3D57'}.get(verdict, '#888')
+    _prev_color = {'High Historical Value Zone': '#00C853', 'Value Accumulation Zone': '#69F0AE', 'Neutral Data Zone': '#FFC107',
+                   'Elevated Risk Zone': '#FF9800', 'High Risk Zone': '#FF3D57'}.get(_prev_verdict, '#888')
+    _new_color  = {'High Historical Value Zone': '#00C853', 'Value Accumulation Zone': '#69F0AE', 'Neutral Data Zone': '#FFC107',
+                   'Elevated Risk Zone': '#FF9800', 'High Risk Zone': '#FF3D57'}.get(verdict, '#888')
     st.markdown(f"""
 <div style="background:rgba(247,147,26,0.07); border:1px solid rgba(247,147,26,0.25); border-radius:12px;
             padding:14px 20px; margin-bottom:12px; display:flex; align-items:flex-start; gap:14px;">
@@ -1562,12 +1562,12 @@ with tab3:
     if cycle_pct < 20:
         phase_name   = "Post-Halving Consolidation"
         phase_desc   = "Historically, Bitcoin consolidates or dips in the months immediately after a halving as the market absorbs the supply shock. This is often an excellent accumulation window — the supply cut has happened but price hasn't reacted yet."
-        phase_signal = "🟢 ACCUMULATE"
+        phase_signal = "🟢 Value Accumulation Zone"
         p_badge      = "buy"
     elif cycle_pct < 50:
         phase_name   = "Bull Market Build-Up"
         phase_desc   = "The supply shock begins to take effect. Institutional and retail demand typically increases. Historically, this phase sees strong price appreciation — we are likely in the early-to-mid bull market."
-        phase_signal = "🟢 ACCUMULATE / HOLD"
+        phase_signal = "🟢 Value Accumulation Zone / HOLD"
         p_badge      = "buy"
     elif cycle_pct < 70:
         phase_name   = "Bull Market Peak Zone"
@@ -1581,8 +1581,8 @@ with tab3:
         p_badge      = "caution"
     else:
         phase_name   = "Late Bear / Accumulation Bottom"
-        phase_desc   = "Approaching the next halving. Historically the best time to accumulate Bitcoin as prices are near cycle lows and sentiment is at extreme fear. The next supply shock is approaching."
-        phase_signal = "🟢 STRONG ACCUMULATE"
+        phase_desc   = "Approaching the next halving. Historical data shows this phase has been associated with value accumulation zones, with prices near cycle lows and sentiment at extreme fear. The next supply shock is approaching."
+        phase_signal = "🟢 STRONG Value Accumulation Zone"
         p_badge      = "buy"
 
     st.markdown(f"""
@@ -1661,11 +1661,11 @@ with tab5:
         sig_history = {}
 
     DCA_MULT = {
-        'STRONG BUY':      1.5,
-        'ACCUMULATE':      1.0,
-        'NEUTRAL — WATCH': 0.5,
-        'CAUTION — HOLD':  0.25,
-        'SELL / REDUCE':   0.0,
+        'High Historical Value Zone':      1.5,
+        'Value Accumulation Zone':      1.0,
+        'Neutral Data Zone': 0.5,
+        'Elevated Risk Zone':  0.25,
+        'High Risk Zone':   0.0,
     }
 
     def _get_monday_930_utc(ref_date):
@@ -1694,7 +1694,7 @@ with tab5:
     Simulates two strategies since this tool launched on <b>Feb 24, 2025</b>.<br>
     <b>Standard DCA</b> invests a fixed weekly amount regardless of signal.<br>
     <b>Signal-Adjusted DCA</b> scales the weekly amount based on the Overall Accumulation Signal:<br>
-    Strong Buy = 150% &nbsp;·&nbsp; Accumulate = 100% &nbsp;·&nbsp; Neutral = 50% &nbsp;·&nbsp; Caution = 25% &nbsp;·&nbsp; Sell = 0%.<br><br>
+    High Historical Value Zone = 150% &nbsp;·&nbsp; Value Accumulation Zone = 100% &nbsp;·&nbsp; Neutral Data Zone = 50% &nbsp;·&nbsp; Elevated Risk Zone = 25% &nbsp;·&nbsp; High Risk Zone = 0%.<br><br>
     Weekly allocations are executed at <b>US market open (Monday 9:30 AM ET)</b>. BTC price is sourced
     from the 9:00–10:00 AM ET hourly candle via Yahoo Finance — the closest available resolution to the
     9:30 AM open. Signal state is recorded as of the same timestamp. Both strategies use identical
@@ -1765,7 +1765,7 @@ with tab5:
                 # Signal state: find closest recorded signal to this Monday
                 closest_sig_date = min(dates_sorted, key=lambda d: abs(
                     (_date.fromisoformat(d) - monday).days))
-                wk_signal = sig_history.get(closest_sig_date, 'NEUTRAL — WATCH')
+                wk_signal = sig_history.get(closest_sig_date, 'Neutral Data Zone')
 
                 std_btc      += weekly_dca / exec_price
                 adj_amount    = weekly_dca * DCA_MULT.get(wk_signal, 0.5)
@@ -1929,23 +1929,51 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Footer
+# Footer — ASIC-Compliant Disclaimer
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style='margin-top:40px; padding:20px 0 10px 0; border-top:1px solid #1E1E2E; text-align:center;'>
-    <div style='font-size:0.72rem; color:#444; line-height:2;'>
+<div style='
+    margin-top: 40px;
+    padding: 20px 24px;
+    border-top: 1px solid #1E1E2E;
+    border-radius: 0 0 12px 12px;
+    background: linear-gradient(135deg, #0D0D18, #110A00);
+    border: 1px solid #2A1A00;
+    border-radius: 12px;
+    margin-bottom: 12px;
+'>
+    <div style='
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #F7931A;
+        margin-bottom: 10px;
+    '>⚠️ General Information Only</div>
+    <div style='
+        font-size: 0.78rem;
+        color: #888;
+        line-height: 1.75;
+        margin-bottom: 12px;
+    '>
+        <strong style='color:#aaa;'>BTCpulse.app is a data aggregation and educational tool.</strong>
+        We are <strong style='color:#aaa;'>NOT financial advisors</strong> and do not hold an Australian Financial Services Licence (AFSL).
+        All content on this site — including the Overall Signal, zone labels, indicator readings, and any AI-generated commentary —
+        is <strong style='color:#aaa;'>factual data and mathematical analysis only</strong>, not financial advice.
+        Bitcoin and other digital assets are <strong style='color:#aaa;'>highly volatile</strong>; past performance and historical patterns
+        do not predict future results. Always perform your own due diligence and consult a licensed financial adviser
+        before making any investment decisions.
+    </div>
+    <div style='font-size:0.68rem; color:#444; line-height:2; text-align:center; border-top:1px solid #1E1E2E; padding-top:10px;'>
         Data: CoinGecko &middot; alternative.me &middot; CoinGlass &middot; Yahoo Finance &middot; FRED API
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         Auto-refreshes every 5 minutes
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-        The Overall Accumulation Signal is a consensus of all 19 indicators
-    </div>
-    <div style='font-size:0.70rem; color:#555; margin-top:6px;'>
-        Built by <strong style='color:#666;'>Beau McKee</strong>
+        Overall Signal is a consensus of all 19 indicators
+        <br>
+        Built by <strong style='color:#555;'>Beau McKee</strong>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         <a href='mailto:beaumckee@gmail.com' style='color:#F7931A; text-decoration:none;'>beaumckee@gmail.com</a>
-        &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-        <span style='color:#555;'>⚠️ Not financial advice.</span>
     </div>
 </div>
 """, unsafe_allow_html=True)

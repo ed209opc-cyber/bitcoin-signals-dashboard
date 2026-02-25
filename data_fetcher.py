@@ -948,23 +948,23 @@ def compute_overall_verdict(signals):
     buy_pct = counts['BUY'] / total * 100
 
     if buy_pct >= 60:
-        verdict = 'STRONG BUY'
+        verdict = 'High Historical Value Zone'
         color   = '#00C853'
         score   = buy_pct
     elif buy_pct >= 40:
-        verdict = 'ACCUMULATE'
+        verdict = 'Value Accumulation Zone'
         color   = '#69F0AE'
         score   = buy_pct
     elif counts['SELL'] / total >= 0.4:
-        verdict = 'CAUTION — HOLD'
+        verdict = 'Elevated Risk Zone'
         color   = '#FF6B35'
         score   = 100 - (counts['SELL'] / total * 100)
     elif counts['SELL'] / total >= 0.6:
-        verdict = 'SELL / REDUCE'
+        verdict = 'High Risk Zone'
         color   = '#FF3D57'
         score   = 100 - (counts['SELL'] / total * 100)
     else:
-        verdict = 'NEUTRAL — WATCH'
+        verdict = 'Neutral Data Zone'
         color   = '#FFC107'
         score   = 50
 

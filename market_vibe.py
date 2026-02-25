@@ -50,7 +50,7 @@ def generate_market_vibe(data: dict, signals: list, verdict: str) -> str:
         buy_names    = [s['name'] for s in signals if s['signal'] == 'BUY'][:3]
         caution_names= [s['name'] for s in signals if s['signal'] == 'CAUTION'][:2]
 
-        prompt = f"""You are a concise Bitcoin market analyst writing a brief daily market vibe summary for a Bitcoin accumulation dashboard.
+        prompt = f"""You are a concise Bitcoin market data analyst writing a brief daily summary for a Bitcoin data dashboard.
 
 Current data:
 - BTC Price: ${price:,.0f} USD (A${price_aud:,.0f} AUD)
@@ -58,12 +58,12 @@ Current data:
 - 7d Change: {chg_7d:+.2f}%
 - Fear & Greed Index: {fg}/100 ({fg_label})
 - BTC Dominance: {dominance:.1f}%
-- Signal Distribution: {buy_n} BUY, {caution_n} CAUTION, {sell_n} SELL out of {len(signals)} indicators
-- Overall Verdict: {verdict}
-- Key BUY signals: {', '.join(buy_names) if buy_names else 'None'}
-- Key CAUTION signals: {', '.join(caution_names) if caution_names else 'None'}
+- Indicator Distribution: {buy_n} Value Zone, {caution_n} Neutral, {sell_n} Risk Zone out of {len(signals)} indicators
+- Overall Signal: {verdict}
+- Key Value Zone indicators: {', '.join(buy_names) if buy_names else 'None'}
+- Key Neutral indicators: {', '.join(caution_names) if caution_names else 'None'}
 
-Write 2-3 sentences (max 80 words total) answering one question: is now a good time to accumulate Bitcoin? Lead with the most important signal. Be direct, factual, and slightly conversational — like a smart analyst friend. No hype, no doom. No markdown, no bullet points. Just plain sentences. If a third sentence adds genuinely useful context (e.g. a key risk or a strong confirming signal), include it — otherwise keep it to 2."""
+Write 2-3 sentences (max 80 words total) describing what the current data indicates about Bitcoin's market cycle position. Use descriptive, factual language only — describe what the data shows, not what anyone should do. No investment advice, no buy/sell recommendations. No markdown, no bullet points. Just plain factual sentences. This is general information only."""
 
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
@@ -92,11 +92,11 @@ def _fallback_vibe(data: dict, signals: list, verdict: str) -> str:
     sentiment = "deeply fearful" if fg < 25 else ("greedy" if fg > 65 else "neutral")
 
     if buy_n >= total * 0.6:
-        outlook = "Most accumulation indicators are flashing green — historically a strong window for dollar-cost averaging."
+        outlook = "The majority of value indicators are in historically low-risk territory — data consistent with past value accumulation zones."
     elif buy_n >= total * 0.4:
-        outlook = "The majority of indicators lean toward accumulation, though some caution signals remain."
+        outlook = "The majority of indicators are in value territory, though some elevated-risk signals remain."
     else:
-        outlook = "Mixed signals across indicators — patience and position sizing are key right now."
+        outlook = "Mixed signals across indicators — data does not strongly favour either value or risk territory at this time."
 
-    return (f"Bitcoin is {direction} at ${price:,.0f}, with the market feeling {sentiment} "
+    return (f"Bitcoin is {direction} at ${price:,.0f}, with market sentiment currently {sentiment} "
             f"(Fear & Greed: {fg}/100 — {fg_label}). {outlook}")
