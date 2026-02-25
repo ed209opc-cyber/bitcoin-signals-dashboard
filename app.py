@@ -697,6 +697,9 @@ price_aud = data.get('price_aud', 0)
 chg_24h   = data.get('chg_24h', 0)
 chg_7d    = data.get('chg_7d', 0)
 aud_rate  = data.get('aud_rate', 1.58)
+dom       = data.get('btc_dominance', 55)
+mkt_cap   = data.get('market_cap', 0)
+vol_24h   = data.get('volume_24h', 0)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Signal Change Detection + Anomaly Detection (cached daily)
