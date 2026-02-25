@@ -946,7 +946,6 @@ with st.expander("📐  The Analytical Framework — how this signal is built", 
       <div style="font-size:0.75rem; color:#888; line-height:1.6;">
         Crowd psychology and market emotion.<br>
         <span style="color:#555;">Fear &amp; Greed Index</span>
-        <span style="color:#333;"> · additional lenses being added</span>
       </div>
     </div>
 
@@ -993,7 +992,7 @@ with st.expander("📐  The Analytical Framework — how this signal is built", 
 </div>
 </body>
 </html>"""
-    components.html(_framework_html, height=680, scrolling=False)
+    components.html(_framework_html, height=1050, scrolling=False)
 
 # Price Strip
 # ─────────────────────────────────────────────────────────────────────────────
