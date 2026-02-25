@@ -173,11 +173,24 @@ footer { display: none !important; }
 .count-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; display: block; margin-top: 1px; }
 
 /* ── Indicator Cards ── */
+/* Force equal-height cards within each Streamlit column row */
+[data-testid="column"] > div:first-child {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
 .indicator-card {
     background: #12121F; border: 1px solid #1E1E2E; border-radius: 12px;
-    padding: 10px 12px; margin-bottom: 8px;
+    padding: 10px 12px; margin-bottom: 0;
     transition: border-color 0.2s, box-shadow 0.2s; cursor: default;
     position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    flex: 1;
 }
 .indicator-card:hover { border-color: #2A2A3E; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 .indicator-card::before {
@@ -205,6 +218,7 @@ footer { display: none !important; }
     background: rgba(255,255,255,0.03); border-radius: 6px;
     font-size: 0.72rem; color: #999; line-height: 1.45;
     border-left: 2px solid #2A2A3E;
+    flex: 1; /* pushes View Details button to bottom */
 }
 .zone-thresholds { display: flex; gap: 8px; margin-top: 4px; font-size: 0.65rem; flex-wrap: wrap; }
 .zone-buy  { color: #00C853; }
@@ -1259,6 +1273,29 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Swyftx Referral Banner — Option A (slim, top of content)
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="background:linear-gradient(135deg,#061525,#0a1e35); border:1px solid rgba(33,150,243,0.2);
+            border-radius:12px; padding:12px 20px; margin:8px 0 16px 0;
+            display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:200px;">
+        <div style="font-size:1.05rem; font-weight:900; color:#fff; letter-spacing:-0.5px; white-space:nowrap;">swyftx<span style='color:#2196F3;'>→</span></div>
+        <div style="width:1px; height:26px; background:rgba(255,255,255,0.08); flex-shrink:0;"></div>
+        <div style="font-size:0.8rem; color:#888; line-height:1.4;">
+            <strong style='color:#C8C8D8;'>Trade Bitcoin on Australia's most trusted exchange.</strong>
+            Sign up with this link &amp; you'll both get $10 AUD of BTC free.
+        </div>
+    </div>
+    <a href="https://trade.swyftx.com/register/?ref=beaumckee" target="_blank" rel="noopener"
+       style="background:#2196F3; color:#fff; font-weight:700; font-size:0.78rem;
+              padding:9px 18px; border-radius:8px; text-decoration:none; white-space:nowrap;
+              flex-shrink:0; letter-spacing:0.3px;">Get $10 Free →</a>
+</div>
+<div style="font-size:0.6rem; color:#333; text-align:right; margin-top:-12px; margin-bottom:8px;">Referral link &nbsp;·&nbsp; Not financial advice &nbsp;·&nbsp; T&amp;Cs apply</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tabs
 # ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2091,6 +2128,37 @@ st.markdown("""
               text-decoration:none; letter-spacing:0.5px;">
         ✉ Email beaumckee@gmail.com
     </a>
+</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Swyftx Referral Banner — Option D (full-width contextual, above footer)
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="margin-top:32px; background:linear-gradient(135deg,#061525 0%,#0a1e35 50%,#061525 100%);
+            border:1px solid rgba(33,150,243,0.2); border-radius:14px; padding:22px 28px;
+            display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center;">
+    <div>
+        <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+                    color:#2196F3; margin-bottom:6px;">🇦🇺 Recommended Exchange</div>
+        <div style="font-size:1.05rem; font-weight:700; color:#E8E8F0; margin-bottom:6px;">
+            Ready to act on the data? Trade Bitcoin on Swyftx.
+        </div>
+        <div style="font-size:0.8rem; color:#666; line-height:1.55; max-width:520px;">
+            Swyftx is an Australian-regulated crypto exchange with low fees, 320+ assets, and 24/7 support.
+            Use this referral link and you'll both receive <strong style='color:#29B6F6;'>$10 AUD of Bitcoin</strong> when you make your first trade.
+        </div>
+        <div style="font-size:0.62rem; color:#333; margin-top:8px;">Referral link &nbsp;·&nbsp; Not financial advice &nbsp;·&nbsp; T&amp;Cs apply &nbsp;·&nbsp; This is a referral partnership</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0;">
+        <div style="background:rgba(33,150,243,0.1); border:1px solid rgba(33,150,243,0.3);
+                    border-radius:8px; padding:8px 14px; font-size:0.72rem; color:#29B6F6;
+                    font-weight:600; text-align:center; white-space:nowrap;">🎁 $10 AUD BTC free<br>for you &amp; your friend</div>
+        <a href="https://trade.swyftx.com/register/?ref=beaumckee" target="_blank" rel="noopener"
+           style="display:block; text-align:center; background:#2196F3; color:#fff; font-weight:700;
+                  font-size:0.82rem; padding:10px 22px; border-radius:8px; text-decoration:none;
+                  white-space:nowrap; width:100%;">Open Account →</a>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
