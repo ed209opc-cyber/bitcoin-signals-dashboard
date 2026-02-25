@@ -602,15 +602,21 @@ def load_data():
     signals = get_all_signals(data)
     verdict, v_color, score, buy_n, caution_n, sell_n = compute_overall_verdict(signals)
 
-    # Fetch AUD/USD exchange rate
+    # Fetch AUD/USD exchange rate (Frankfurter = ECB data, no rate limits)
+    aud_rate = 1.58  # fallback
     try:
-        r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=8)
+        r = requests.get("https://api.frankfurter.app/latest?from=USD&to=AUD", timeout=8)
         if r.status_code == 200:
             aud_rate = r.json().get('rates', {}).get('AUD', 1.58)
-        else:
-            aud_rate = 1.58
     except Exception:
-        aud_rate = 1.58
+        pass
+    if aud_rate == 1.58:  # primary failed, try backup
+        try:
+            r = requests.get("https://open.er-api.com/v6/latest/USD", timeout=8)
+            if r.status_code == 200:
+                aud_rate = r.json().get('rates', {}).get('AUD', 1.58)
+        except Exception:
+            pass
 
     data['aud_rate']       = aud_rate
     data['price_aud']      = data['price'] * aud_rate

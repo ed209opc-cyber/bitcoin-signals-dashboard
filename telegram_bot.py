@@ -4,6 +4,9 @@ BTC_Pulse_Bot — Telegram Bot
 Handles subscriber management (/subscribe, /unsubscribe, /signal)
 and sends signal change alerts to all subscribers.
 
+Subscriber list is stored in Google Sheets (durable across Railway redeployments).
+Local telegram_subs.json is used as a fast in-memory cache and fallback.
+
 Setup:
 1. Create a bot via @BotFather on Telegram -> get BOT_TOKEN
 2. Set TELEGRAM_BOT_TOKEN environment variable on Railway
@@ -26,10 +29,12 @@ SIGNAL_CACHE_FILE = os.path.join(os.path.dirname(__file__), ".alert_cache.json")
 DASHBOARD_URL = "https://web-production-7d14.up.railway.app"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Subscriber management (JSON file — ephemeral fallback)
+# Subscriber management
+# Primary store: Google Sheets (survives redeployments)
+# Fallback: local JSON file (ephemeral but fast)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def load_subscribers():
+def _load_local_subs():
     if os.path.exists(SUBS_FILE):
         try:
             with open(SUBS_FILE, "r") as f:
@@ -39,34 +44,95 @@ def load_subscribers():
     return []
 
 
-def save_subscribers(subs):
+def _save_local_subs(subs):
     try:
         with open(SUBS_FILE, "w") as f:
             json.dump(subs, f, indent=2)
     except Exception as e:
-        print(f"[Telegram] Could not save subs file: {e}")
+        print(f"[Telegram] Could not save local subs file: {e}")
+
+
+def load_subscribers():
+    """Load subscribers — Sheets first, local JSON fallback."""
+    try:
+        from sheets_storage import sheets_load_subscribers
+        subs = sheets_load_subscribers()
+        if subs is not None:
+            # Sync to local cache for fast access
+            _save_local_subs(subs)
+            return subs
+    except Exception as e:
+        print(f"[Telegram] Sheets load error: {e}")
+    # Fallback to local JSON
+    return _load_local_subs()
 
 
 def add_subscriber(chat_id, username="", first_name="", last_name=""):
-    subs = load_subscribers()
-    if any(str(s.get("chat_id")) == str(chat_id) for s in subs):
-        return False  # already subscribed
+    """
+    Add subscriber to Sheets (primary) and local JSON (cache).
+    Returns True if newly added, False if already subscribed.
+    """
+    # Try Sheets first
+    try:
+        from sheets_storage import sheets_add_subscriber
+        result = sheets_add_subscriber(chat_id, username, first_name, last_name)
+        if result is not None:
+            # Sync local cache
+            subs = _load_local_subs()
+            chat_id_str = str(chat_id)
+            if result:  # newly added
+                subs = [s for s in subs if str(s.get("chat_id")) != chat_id_str]
+                subs.append({
+                    "chat_id": chat_id_str,
+                    "username": username,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "joined": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+                })
+                _save_local_subs(subs)
+            return result
+    except Exception as e:
+        print(f"[Telegram] Sheets add error: {e}")
+
+    # Fallback: local JSON only
+    subs = _load_local_subs()
+    chat_id_str = str(chat_id)
+    if any(str(s.get("chat_id")) == chat_id_str for s in subs):
+        return False
     subs.append({
-        "chat_id": str(chat_id),
+        "chat_id": chat_id_str,
         "username": username,
         "first_name": first_name,
         "last_name": last_name,
         "joined": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     })
-    save_subscribers(subs)
+    _save_local_subs(subs)
     return True
 
 
 def remove_subscriber(chat_id):
-    subs = load_subscribers()
+    """
+    Remove subscriber from Sheets (primary) and local JSON (cache).
+    Returns True if found and removed.
+    """
+    # Try Sheets first
+    try:
+        from sheets_storage import sheets_remove_subscriber
+        result = sheets_remove_subscriber(chat_id)
+        if result is not None:
+            # Sync local cache
+            subs = _load_local_subs()
+            new_subs = [s for s in subs if str(s.get("chat_id")) != str(chat_id)]
+            _save_local_subs(new_subs)
+            return result
+    except Exception as e:
+        print(f"[Telegram] Sheets remove error: {e}")
+
+    # Fallback: local JSON only
+    subs = _load_local_subs()
     new_subs = [s for s in subs if str(s.get("chat_id")) != str(chat_id)]
     if len(new_subs) < len(subs):
-        save_subscribers(new_subs)
+        _save_local_subs(new_subs)
         return True
     return False
 
@@ -113,9 +179,11 @@ def broadcast(text):
 # ─────────────────────────────────────────────────────────────────────────────
 
 SIGNAL_EMOJI = {
-    "ACCUMULATE": "🟢",
-    "CAUTION":    "🟡",
-    "AVOID":      "🔴",
+    "STRONG BUY":       "🚀",
+    "ACCUMULATE":       "🟢",
+    "NEUTRAL — WATCH":  "🟡",
+    "CAUTION — HOLD":   "🟠",
+    "SELL / REDUCE":    "🔴",
 }
 
 
@@ -150,8 +218,8 @@ def _fetch_live_signals():
     """Fetch fresh signal data directly from data_fetcher.
     Returns (verdict, score, buy_n, caution_n, sell_n, price) or None on failure."""
     try:
-        import sys, os
-        sys.path.insert(0, os.path.dirname(__file__))
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(__file__))
         from data_fetcher import get_all_indicators, get_all_signals, compute_overall_verdict
         data    = get_all_indicators()
         signals = get_all_signals(data)
@@ -182,7 +250,6 @@ def _build_signal_message():
         if live_price is not None:
             price = live_price
 
-    val_region = ""
     emoji = SIGNAL_EMOJI.get(verdict, "⚪")
 
     lines = [
@@ -199,9 +266,6 @@ def _build_signal_message():
 
     if buy_n != "" or caution_n != "" or sell_n != "":
         lines.append("🟢 " + str(buy_n) + " Buy  🟡 " + str(caution_n) + " Caution  🔴 " + str(sell_n) + " Sell")
-
-    if val_region:
-        lines.append("📍 " + str(val_region))
 
     if price != "":
         try:
@@ -262,13 +326,19 @@ def handle_update(update):
     if text_lower in ("/start", "/subscribe"):
         added = add_subscriber(chat_id, username, first_name, last_name)
 
-        # Log to Google Sheets (non-blocking)
+        # Log event to Google Sheets
         try:
             from sheets_storage import save_telegram_event
-            cache = _load_cache()
-            sig_str = str(cache.get("last_verdict", "")) + " (" + str(cache.get("last_score", "")) + ")"
+            live = _fetch_live_signals()
+            if live:
+                sig_str = str(live[0]) + " (" + str(int(float(live[1]))) + "/100)"
+                btc_price = str(live[5])
+            else:
+                cache = _load_cache()
+                sig_str = str(cache.get("last_verdict", "")) + " (" + str(cache.get("last_score", "")) + ")"
+                btc_price = str(cache.get("last_price", ""))
             action = "subscribe" if added else "already_subscribed"
-            save_telegram_event(chat_id, username, first_name, last_name, action, sig_str)
+            save_telegram_event(chat_id, username, first_name, last_name, action, sig_str, btc_price)
         except Exception as e:
             print("[Telegram] Sheets log error: " + str(e))
 
@@ -304,6 +374,18 @@ def handle_update(update):
             send_message(chat_id, "You weren't subscribed. Use /subscribe to start receiving alerts.")
 
     elif text_lower == "/signal":
+        # Log /signal command usage
+        try:
+            from sheets_storage import save_telegram_event
+            live = _fetch_live_signals()
+            sig_str = ""
+            btc_price = ""
+            if live:
+                sig_str = str(live[0]) + " (" + str(int(float(live[1]))) + "/100)"
+                btc_price = str(live[5])
+            save_telegram_event(chat_id, username, first_name, last_name, "/signal", sig_str, btc_price)
+        except Exception:
+            pass
         send_message(chat_id, _build_signal_message())
 
     elif text_lower == "/help":
@@ -317,7 +399,6 @@ def handle_update(update):
             "Or just send <b>any message</b> to get an instant signal update.\n\n"
             '<a href="' + DASHBOARD_URL + '">Open Dashboard →</a>'
         )
-
     else:
         send_message(chat_id, _build_signal_message())
 
@@ -352,6 +433,13 @@ def run_polling():
         print("[Telegram] ERROR: TELEGRAM_BOT_TOKEN not set. Exiting.")
         return
 
+    # Sync subscriber list from Sheets on startup
+    try:
+        subs = load_subscribers()
+        print("[Telegram] Loaded " + str(len(subs)) + " subscribers from Sheets.")
+    except Exception as e:
+        print("[Telegram] Subscriber sync error on startup: " + str(e))
+
     offset = None
     consecutive_errors = 0
 
@@ -385,7 +473,8 @@ if __name__ == "__main__":
         run_polling()
     elif args[0] == "test":
         print("BOT_TOKEN set: " + ("Yes" if BOT_TOKEN else "No"))
-        print("Subscribers: " + str(len(load_subscribers())))
+        subs = load_subscribers()
+        print("Subscribers: " + str(len(subs)))
         result = broadcast(
             "🧪 <b>Test Alert — BTC_Pulse_Bot</b>\n\n"
             "This is a test notification from your dashboard bot.\n"
