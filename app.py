@@ -5,6 +5,34 @@ Dark mode · Live signals · Market vibe · AUD pricing · Hover tooltips
 
 import streamlit as st
 import streamlit.components.v1 as components
+import json as _json_beta
+import os
+from datetime import datetime as _dt_beta
+BETA_SIGNUPS_FILE = os.path.join(os.path.dirname(__file__), 'beta_signups.json')
+TELEGRAM_SUBS_FILE = os.path.join(os.path.dirname(__file__), 'telegram_subs.json')
+def _load_beta_signups():
+    if os.path.exists(BETA_SIGNUPS_FILE):
+        try:
+            with open(BETA_SIGNUPS_FILE, 'r') as _f:
+                return _json_beta.load(_f)
+        except Exception:
+            pass
+    return []
+
+def _save_beta_signup(email, name=''):
+    signups = _load_beta_signups()
+    # Deduplicate by email
+    if any(s.get('email','').lower() == email.lower() for s in signups):
+        return False  # already exists
+    signups.append({
+        'email': email.strip(),
+        'name': name.strip(),
+        'timestamp': _dt_beta.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+    })
+    with open(BETA_SIGNUPS_FILE, 'w') as _f:
+        _json_beta.dump(signups, _f, indent=2)
+    return True
+
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
@@ -626,11 +654,21 @@ if _anomalies:
     else:
         _anomaly_text = _cached_anomaly
 
+# ── Send Telegram alert on signal change ──
+if _signal_changed:
+    try:
+        from telegram_bot import send_signal_change_alert as _tg_alert
+        _tg_alert(_prev_verdict, verdict, int(score), buy_n, caution_n, sell_n, price)
+    except Exception as _tg_err:
+        print(f"[Telegram] Alert error: {_tg_err}")
 # ── Update cache with current values ──
 _alert_cache['prev_verdict'] = verdict
 _alert_cache['prev_fg']      = data.get('fear_greed')
 _alert_cache['prev_chg']     = data.get('chg_24h')
 _alert_cache['prev_mvrv']    = data.get('mvrv')
+_alert_cache['last_verdict'] = verdict
+_alert_cache['last_score']   = int(score)
+_alert_cache['last_price']   = price
 _save_alert_cache(_alert_cache)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -939,12 +977,13 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabs
 # ─────────────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Signal Tracker",
     "📈 Price Chart",
     "⛏️ Halving Cycle",
     "ℹ️ Indicator Guide",
     "📉 DCA Performance",
+    "🔐 Admin",
 ])
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1624,6 +1663,78 @@ with tab5:
                         'Executions: Monday 9:30 AM ET · Price: Yahoo Finance hourly · '
                         'Launch: Feb 24, 2025 · Not financial advice</div>',
                         unsafe_allow_html=True)
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# TAB 6: ADMIN
+# ═════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown("### 🔐 Admin Panel")
+    _admin_pw = st.text_input("Password", type="password", key="admin_pw")
+    _ADMIN_PW = os.environ.get("ADMIN_PASSWORD", "beau2025")
+    if _admin_pw == _ADMIN_PW:
+        _signups = _load_beta_signups()
+        st.success(f"✅ {len(_signups)} beta signups")
+        if _signups:
+            import pandas as pd
+            _df_signups = pd.DataFrame(_signups)
+            st.dataframe(_df_signups, use_container_width=True)
+            _csv = _df_signups.to_csv(index=False)
+            st.download_button("⬇️ Download CSV", _csv, "beta_signups.csv", "text/csv")
+        else:
+            st.info("No signups yet.")
+        st.markdown("---")
+        st.markdown("**Telegram Subscribers**")
+        if os.path.exists(TELEGRAM_SUBS_FILE):
+            try:
+                with open(TELEGRAM_SUBS_FILE, 'r') as _tf:
+                    _tg_subs = _json_beta.load(_tf)
+                st.success(f"✅ {len(_tg_subs)} Telegram subscribers")
+                for _sub in _tg_subs:
+                    st.caption(f"chat_id: {_sub.get('chat_id')} — joined {_sub.get('joined','?')}")
+            except Exception:
+                st.info("No Telegram subscribers yet.")
+        else:
+            st.info("No Telegram subscribers yet.")
+    elif _admin_pw:
+        st.error("Incorrect password.")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Join the Beta — Email Capture
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="margin-top:32px; background:linear-gradient(135deg,#0D0D1A,#12121F);
+     border:1px solid rgba(247,147,26,0.35); border-radius:14px; padding:24px 28px; text-align:center;">
+    <div style="font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+                color:#F7931A; margin-bottom:6px;">🚀 Join the Beta</div>
+    <div style="font-size:1.05rem; font-weight:600; color:#E8E8E8; margin-bottom:6px;">
+        Be the first to know when the signal changes
+    </div>
+    <div style="font-size:0.82rem; color:#666; margin-bottom:0;">
+        Get early access to Telegram alerts, weekly signal summaries, and new features.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+_beta_col1, _beta_col2, _beta_col3 = st.columns([1, 2, 1])
+with _beta_col2:
+    with st.form("beta_signup_form", clear_on_submit=True):
+        _beta_email = st.text_input("Email address", placeholder="you@example.com", label_visibility="collapsed")
+        _beta_name  = st.text_input("First name (optional)", placeholder="First name", label_visibility="collapsed")
+        _beta_submit = st.form_submit_button("🚀 Join the Beta", use_container_width=True)
+        if _beta_submit:
+            if _beta_email and '@' in _beta_email and '.' in _beta_email:
+                _saved = _save_beta_signup(_beta_email, _beta_name)
+                if _saved:
+                    st.success("✅ You're on the list! We'll be in touch.")
+                else:
+                    st.info("You're already signed up — we'll be in touch!")
+            else:
+                st.warning("Please enter a valid email address.")
+    st.markdown('<div style="font-size:0.68rem; color:#333; text-align:center; margin-top:4px;">No spam. Unsubscribe anytime.</div>', unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Contact / Feedback
