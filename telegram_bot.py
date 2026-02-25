@@ -140,19 +140,45 @@ def handle_update(update):
 
     if text in ["/start", "/subscribe"]:
         added = add_subscriber(chat_id, username)
+        # Build current signal snippet from cache
+        _signal_snippet = ""
+        try:
+            if os.path.exists(SIGNAL_CACHE_FILE):
+                with open(SIGNAL_CACHE_FILE, "r") as _f:
+                    _cache = json.load(_f)
+                _verdict = _cache.get("last_verdict", "")
+                _score = _cache.get("last_score", 0)
+                _price = _cache.get("last_price", 0)
+                _buy_n = _cache.get("last_buy", 0)
+                _caution_n = _cache.get("last_caution", 0)
+                _sell_n = _cache.get("last_sell", 0)
+                _emoji = SIGNAL_EMOJI.get(_verdict, "⚪")
+                _signal_snippet = (
+                    f"\n\n📊 <b>Current Signal</b>\n"
+                    f"{_emoji} <b>{_verdict}</b>  ·  Score: {_score}/100\n"
+                    f"🟢 {_buy_n} Buy  🟡 {_caution_n} Caution  🔴 {_sell_n} Sell\n"
+                    f"💰 BTC: <b>${_price:,.0f}</b>"
+                )
+        except Exception:
+            pass
         if added:
             send_message(chat_id,
-                "✅ <b>You're subscribed!</b>\n\n"
-                "You'll receive a notification whenever the Bitcoin Accumulation Signal changes tier.\n\n"
-                "Commands:\n"
-                "/signal — Get the current signal\n"
-                "/unsubscribe — Stop notifications\n\n"
-                "<i>Not financial advice.</i>"
+                f"✅ <b>Welcome to Bitcoin Accumulation Index!</b>\n\n"
+                f"You'll receive an alert whenever the overall signal changes tier — "
+                f"so you always know whether it's a time to accumulate or hold off."
+                f"{_signal_snippet}\n\n"
+                f"Commands:\n"
+                f"/signal — Get the current signal anytime\n"
+                f"/unsubscribe — Stop notifications\n\n"
+                f"<a href='https://web-production-7d14.up.railway.app'>View Full Dashboard →</a>\n\n"
+                f"<i>Not financial advice.</i>"
             )
         else:
             send_message(chat_id,
-                "You're already subscribed! 👍\n\n"
-                "Use /signal to get the current signal, or /unsubscribe to stop notifications."
+                f"You're already subscribed! 👍"
+                f"{_signal_snippet}\n\n"
+                f"Use /signal anytime for the latest reading, or /unsubscribe to stop alerts.\n"
+                f"<a href='https://web-production-7d14.up.railway.app'>View Dashboard →</a>"
             )
 
     elif text == "/unsubscribe":

@@ -685,6 +685,9 @@ _alert_cache['prev_mvrv']    = data.get('mvrv')
 _alert_cache['last_verdict'] = verdict
 _alert_cache['last_score']   = int(score)
 _alert_cache['last_price']   = price
+_alert_cache['last_buy']     = buy_n
+_alert_cache['last_caution'] = caution_n
+_alert_cache['last_sell']    = sell_n
 _save_alert_cache(_alert_cache)
 
 # ─────────────────────────────────────────────────────────────────────────────
