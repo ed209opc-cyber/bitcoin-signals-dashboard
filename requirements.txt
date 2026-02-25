@@ -7,3 +7,6 @@ pycoingecko>=3.1.0
 openai>=1.0.0
 yfinance>=0.2.36
 pytz
+gspread>=6.0.0
+google-auth>=2.0.0
+python-telegram-bot>=20.0
