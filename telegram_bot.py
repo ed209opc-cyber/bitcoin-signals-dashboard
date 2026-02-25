@@ -1,5 +1,5 @@
 """
-Bitcoin Accumulation Index — Telegram Bot
+BTCpulse — Telegram Bot
 ==========================================
 Handles subscriber management (/subscribe, /unsubscribe, /signal)
 and sends signal change alerts to all subscribers.
@@ -120,13 +120,65 @@ def send_signal_change_alert(prev_signal, new_signal, score, buy_n, caution_n, s
         f"🟢 Buy: {buy_n}  🟡 Caution: {caution_n}  🔴 Sell: {sell_n}\n"
         f"💰 BTC Price: <b>${price:,.0f}</b>\n\n"
         f"<a href='https://web-production-7d14.up.railway.app'>View Dashboard →</a>\n\n"
-        f"<i>Bitcoin Accumulation Index · Not financial advice</i>"
+        f"<i>BTCpulse · Not financial advice</i>"
     )
     return broadcast(text)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Webhook handler (for processing incoming messages from users)
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _build_signal_message():
+    """Build a formatted current signal message from the alert cache."""
+    try:
+        if os.path.exists(SIGNAL_CACHE_FILE):
+            with open(SIGNAL_CACHE_FILE, "r") as _f:
+                cache = json.load(_f)
+            verdict    = cache.get("last_verdict", "")
+            score      = cache.get("last_score", 0)
+            price      = cache.get("last_price", 0)
+            buy_n      = cache.get("last_buy", 0)
+            caution_n  = cache.get("last_caution", 0)
+            sell_n     = cache.get("last_sell", 0)
+            val_region = cache.get("last_val_region", "")
+            pct_200w   = cache.get("last_pct_200w", 0)
+            emoji      = SIGNAL_EMOJI.get(verdict, "⚪")
+            val_emoji_map = {
+                "Very Cheap": "🟢🟢", "Cheap": "🟢",
+                "Fair Value": "🟡", "Expensive": "🟠",
+                "Very Expensive": "🔴",
+            }
+            val_emoji = val_emoji_map.get(val_region, "⚪")
+            if verdict in ("STRONG BUY", "ACCUMULATE"):
+                summary = "Indicators are broadly bullish. Historically a favourable window to accumulate."
+            elif "NEUTRAL" in verdict:
+                summary = "Mixed signals — no strong edge in either direction. Watch and wait."
+            elif "CAUTION" in verdict:
+                summary = "Indicators are cautious. Reduce new exposure and manage risk."
+            else:
+                summary = "Indicators lean bearish. Consider reducing or pausing new positions."
+            ts = datetime.utcnow().strftime("%d %b %Y %H:%M UTC")
+            val_pct = ("  (%+.1f%% vs 200W MA)" % pct_200w) if val_region else ""
+            lines = [
+                "📡 <b>BTCpulse — Live Signal</b>",
+                "",
+                "%s <b>Signal: %s</b>  ·  Score: %s/100" % (emoji, verdict, score),
+                "🟢 %s Buy  🟡 %s Caution  🔴 %s Sell" % (buy_n, caution_n, sell_n),
+                "",
+                "%s <b>Valuation: %s</b>%s" % (val_emoji, val_region, val_pct),
+                "💰 BTC Price: <b>$%s</b>" % "{:,.0f}".format(price),
+                "",
+                "💬 %s" % summary,
+                "",
+                "🕐 Updated: %s" % ts,
+                "",
+                "<a href='https://web-production-7d14.up.railway.app'>View Full Dashboard →</a>",
+                "<i>Not financial advice.</i>",
+            ]
+            return "\n".join(lines)
+    except Exception:
+        pass
+    return "⚠️ Signal data not available yet. The dashboard refreshes every 5 minutes — try again shortly."
 
 def handle_update(update):
     """Process an incoming Telegram update (message from a user)."""
@@ -163,7 +215,7 @@ def handle_update(update):
             pass
         if added:
             send_message(chat_id,
-                f"✅ <b>Welcome to Bitcoin Accumulation Index!</b>\n\n"
+                f"✅ <b>Welcome to BTCpulse!</b>\n\n"
                 f"You'll receive an alert whenever the overall signal changes tier — "
                 f"so you always know whether it's a time to accumulate or hold off."
                 f"{_signal_snippet}\n\n"
@@ -189,37 +241,22 @@ def handle_update(update):
             send_message(chat_id, "You weren't subscribed. Use /subscribe to start receiving alerts.")
 
     elif text == "/signal":
-        # Read latest signal from alert cache
-        try:
-            if os.path.exists(SIGNAL_CACHE_FILE):
-                with open(SIGNAL_CACHE_FILE, "r") as f:
-                    cache = json.load(f)
-                verdict = cache.get("last_verdict", "Unknown")
-                score = cache.get("last_score", 0)
-                price = cache.get("last_price", 0)
-                emoji = SIGNAL_EMOJI.get(verdict, "⚪")
-                send_message(chat_id,
-                    f"📊 <b>Current Signal</b>\n\n"
-                    f"{emoji} <b>{verdict}</b>\n"
-                    f"Score: {score}/100\n"
-                    f"BTC Price: ${price:,.0f}\n\n"
-                    f"<a href='https://web-production-7d14.up.railway.app'>View Dashboard →</a>"
-                )
-            else:
-                send_message(chat_id, "Signal data not available yet. Try again in a few minutes.")
-        except Exception as e:
-            send_message(chat_id, "Couldn't fetch signal data right now. Try again soon.")
+        send_message(chat_id, _build_signal_message())
 
     elif text == "/help":
         send_message(chat_id,
-            "🤖 <b>Bitcoin Accumulation Index Bot</b>\n\n"
+            "🤖 <b>BTCpulse Bot</b>\n\n"
             "Commands:\n"
             "/subscribe — Get signal change alerts\n"
             "/unsubscribe — Stop alerts\n"
             "/signal — Current accumulation signal\n"
             "/help — This message\n\n"
+            "Or just send <b>any message</b> to get an instant signal update.\n\n"
             "<a href='https://web-production-7d14.up.railway.app'>Open Dashboard →</a>"
         )
+    else:
+        # Fallback: any unrecognised message → return current signal
+        send_message(chat_id, _build_signal_message())
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Polling loop (for development/testing — on Railway use webhook instead)
@@ -264,7 +301,7 @@ if __name__ == "__main__":
             print(f"Subscribers: {len(load_subscribers())}")
             print("Sending test broadcast...")
             broadcast(
-                "🧪 <b>Test Alert — Bitcoin Accumulation Index</b>\n\n"
+                "🧪 <b>Test Alert — BTCpulse</b>\n\n"
                 "This is a test notification from your dashboard bot.\n"
                 "If you received this, the bot is working correctly! ✅\n\n"
                 "<i>Not financial advice.</i>"
